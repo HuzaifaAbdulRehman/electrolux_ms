@@ -10,38 +10,7 @@ A full-stack web-based application designed to digitize and streamline electrici
 - **Auth:** NextAuth v4 + bcryptjs
 - **Styling:** Tailwind CSS
 
-## Project Structure
-
-```
-src/
-  app/              # Next.js App Router pages
-  lib/
-    drizzle/
-      db.ts         # Database connection
-      schema/       # Table definitions
-    auth.ts         # NextAuth configuration
-```
-
-## Getting Started
-
-1. Clone the repo
-2. Copy `.env.example` to `.env.local` and fill in your credentials
-3. Create the database:
-   ```sql
-   CREATE DATABASE electricity_ems;
-   ```
-4. Install dependencies:
-   ```bash
-   npm install
-   ```
-5. Push schema to database:
-   ```bash
-   npm run db:push
-   ```
-6. Start dev server:
-   ```bash
-   npm run dev
-   ```
+  
 
 ## Team
 
