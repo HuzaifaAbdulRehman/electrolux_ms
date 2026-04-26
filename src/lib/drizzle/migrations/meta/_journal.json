@@ -1,0 +1,14 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1761261133500,
+      "tag": "0000_real_sentry",
+      "breakpoints": true
+    }
+  ]
+}
+
