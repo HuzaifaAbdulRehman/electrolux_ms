@@ -1,27 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/drizzle/db";
-import {
-  bills,
-  customers,
-  meterReadings,
-  tariffs,
-  tariffSlabs,
-  notifications,
-} from "@/lib/drizzle/schema";
-import {
-  eq,
-  and,
-  desc,
-  gte,
-  lte,
-  or,
-  like,
-  sql,
-  asc,
-  inArray,
-} from "drizzle-orm";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/drizzle/db';
+import { bills, customers, meterReadings, tariffs, tariffSlabs, notifications } from '@/lib/drizzle/schema';
+import { eq, and, desc, gte, lte, or, like, sql, asc, inArray } from 'drizzle-orm';
 
 // GET /api/bills - Get bills (filtered by user type)
 export async function GET(request: NextRequest) {
@@ -29,19 +11,19 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const billId = searchParams.get("id");
-    const customerId = searchParams.get("customerId");
-    const status = searchParams.get("status");
-    const month = searchParams.get("month");
-    const search = searchParams.get("search");
-    const fromDate = searchParams.get("fromDate");
-    const toDate = searchParams.get("toDate");
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "10", 10);
+    const billId = searchParams.get('id');
+    const customerId = searchParams.get('customerId');
+    const status = searchParams.get('status');
+    const month = searchParams.get('month');
+    const search = searchParams.get('search');
+    const fromDate = searchParams.get('fromDate');
+    const toDate = searchParams.get('toDate');
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
     const offset = (page - 1) * limit;
 
     const conditions = [];
@@ -52,7 +34,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Filter based on user type
-    if (session.user.userType === "customer" && !billId) {
+    if (session.user.userType === 'customer' && !billId) {
       conditions.push(eq(bills.customerId, session.user.customerId!));
     } else if (customerId) {
       conditions.push(eq(bills.customerId, parseInt(customerId, 10)));
@@ -64,16 +46,16 @@ export async function GET(request: NextRequest) {
       const monthStart = new Date(month);
       const monthEnd = new Date(monthStart);
       monthEnd.setMonth(monthEnd.getMonth() + 1);
-      const monthStartStr = monthStart.toISOString().split("T")[0];
-      const monthEndStr = monthEnd.toISOString().split("T")[0];
+      const monthStartStr = monthStart.toISOString().split('T')[0];
+      const monthEndStr = monthEnd.toISOString().split('T')[0];
       conditions.push(
-        sql`${bills.billingMonth} >= ${monthStartStr} AND ${bills.billingMonth} < ${monthEndStr}`,
+        sql`${bills.billingMonth} >= ${monthStartStr} AND ${bills.billingMonth} < ${monthEndStr}`
       );
     }
 
     // Filter by status - supports single value or comma-separated values
     if (status) {
-      const statusValues = status.split(",").map((s) => s.trim());
+      const statusValues = status.split(',').map(s => s.trim());
       if (statusValues.length === 1) {
         conditions.push(eq(bills.status, statusValues[0] as any));
       } else {
@@ -125,37 +107,30 @@ export async function GET(request: NextRequest) {
       .$dynamic();
 
     if (conditions.length > 0) {
-      query = query.where(
-        conditions.length === 1 ? conditions[0] : (and(...conditions) as any),
-      );
+      query = query.where(conditions.length === 1 ? conditions[0] : and(...conditions) as any);
     }
 
-    const billsResult = await query
-      .orderBy(desc(bills.issueDate))
-      .limit(limit)
-      .offset(offset);
+    const billsResult = await query.orderBy(desc(bills.issueDate)).limit(limit).offset(offset);
 
     // Fetch tariff slabs for each bill
-    const result = await Promise.all(
-      billsResult.map(async (bill) => {
-        if (bill.tariffId) {
-          const slabs = await db
-            .select()
-            .from(tariffSlabs)
-            .where(eq(tariffSlabs.tariffId, bill.tariffId))
-            .orderBy(asc(tariffSlabs.slabOrder));
+    const result = await Promise.all(billsResult.map(async (bill) => {
+      if (bill.tariffId) {
+        const slabs = await db
+          .select()
+          .from(tariffSlabs)
+          .where(eq(tariffSlabs.tariffId, bill.tariffId))
+          .orderBy(asc(tariffSlabs.slabOrder));
 
-          return {
-            ...bill,
-            tariffSlabs: slabs,
-          };
-        }
         return {
           ...bill,
-          tariffSlabs: [],
+          tariffSlabs: slabs
         };
-      }),
-    );
+      }
+      return {
+        ...bill,
+        tariffSlabs: []
+      };
+    }));
 
     // Get total count and aggregate stats
     let countQuery = db
@@ -173,9 +148,7 @@ export async function GET(request: NextRequest) {
       .$dynamic();
 
     if (conditions.length > 0) {
-      countQuery = countQuery.where(
-        conditions.length === 1 ? conditions[0] : (and(...conditions) as any),
-      );
+      countQuery = countQuery.where(conditions.length === 1 ? conditions[0] : and(...conditions) as any);
     }
 
     const [aggregateStats] = await countQuery;
@@ -199,11 +172,12 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(Number(aggregateStats.count || 0) / limit),
       },
     });
+
   } catch (error) {
-    console.error("Error fetching bills:", error);
+    console.error('Error fetching bills:', error);
     return NextResponse.json(
-      { error: "Failed to fetch bills" },
-      { status: 500 },
+      { error: 'Failed to fetch bills' },
+      { status: 500 }
     );
   }
 }
@@ -214,12 +188,12 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Only admin and employees can generate bills
-    if (session.user.userType === "customer") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (session.user.userType === 'customer') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -227,8 +201,8 @@ export async function POST(request: NextRequest) {
 
     if (!customerId || !billingMonth) {
       return NextResponse.json(
-        { error: "customerId and billingMonth are required" },
-        { status: 400 },
+        { error: 'customerId and billingMonth are required' },
+        { status: 400 }
       );
     }
 
@@ -239,15 +213,15 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(bills.customerId, customerId),
-          eq(bills.billingMonth, billingMonth),
-        ),
+          eq(bills.billingMonth, billingMonth)
+        )
       )
       .limit(1);
 
     if (existingBill) {
       return NextResponse.json(
-        { error: "Bill already exists for this month" },
-        { status: 400 },
+        { error: 'Bill already exists for this month' },
+        { status: 400 }
       );
     }
 
@@ -261,8 +235,8 @@ export async function POST(request: NextRequest) {
 
     if (!latestReading) {
       return NextResponse.json(
-        { error: "No meter reading found for this customer" },
-        { status: 400 },
+        { error: 'No meter reading found for this customer' },
+        { status: 400 }
       );
     }
 
@@ -275,8 +249,8 @@ export async function POST(request: NextRequest) {
 
     if (!customer) {
       return NextResponse.json(
-        { error: "Customer not found" },
-        { status: 404 },
+        { error: 'Customer not found' },
+        { status: 404 }
       );
     }
 
@@ -290,8 +264,8 @@ export async function POST(request: NextRequest) {
 
     if (!tariff) {
       return NextResponse.json(
-        { error: "No tariff found for customer connection type" },
-        { status: 400 },
+        { error: 'No tariff found for customer connection type' },
+        { status: 400 }
       );
     }
 
@@ -304,8 +278,8 @@ export async function POST(request: NextRequest) {
 
     if (slabs.length === 0) {
       return NextResponse.json(
-        { error: "No tariff slabs found for the selected tariff" },
-        { status: 400 },
+        { error: 'No tariff slabs found for the selected tariff' },
+        { status: 400 }
       );
     }
 
@@ -328,10 +302,9 @@ export async function POST(request: NextRequest) {
     }
 
     const fixedCharges = parseFloat(tariff.fixedCharge);
-    const electricityDuty =
-      baseAmount * (parseFloat(tariff.electricityDutyPercent || "0") / 100);
+    const electricityDuty = baseAmount * (parseFloat(tariff.electricityDutyPercent || '0') / 100);
     const subtotal = baseAmount + fixedCharges + electricityDuty;
-    const gstAmount = subtotal * (parseFloat(tariff.gstPercent || "0") / 100);
+    const gstAmount = subtotal * (parseFloat(tariff.gstPercent || '0') / 100);
     const totalAmount = subtotal + gstAmount;
 
     // Generate bill number
@@ -346,8 +319,8 @@ export async function POST(request: NextRequest) {
       customerId,
       billNumber,
       billingMonth,
-      issueDate: issueDate.toISOString().split("T")[0],
-      dueDate: dueDate.toISOString().split("T")[0],
+      issueDate: issueDate.toISOString().split('T')[0],
+      dueDate: dueDate.toISOString().split('T')[0],
       unitsConsumed: unitsConsumed.toString(),
       meterReadingId: latestReading.id,
       baseAmount: baseAmount.toFixed(2),
@@ -355,7 +328,7 @@ export async function POST(request: NextRequest) {
       electricityDuty: electricityDuty.toFixed(2),
       gstAmount: gstAmount.toFixed(2),
       totalAmount: totalAmount.toFixed(2),
-      status: "issued",
+      status: 'issued',
     } as any);
 
     // Update customer's last bill amount
@@ -371,32 +344,31 @@ export async function POST(request: NextRequest) {
     if (customer?.userId) {
       await db.insert(notifications).values({
         userId: customer.userId,
-        notificationType: "billing",
-        title: "New Bill Generated",
-        message: `Your electricity bill for ${billingMonth} has been generated. Amount: Rs. ${totalAmount.toFixed(2)}. Due date: ${dueDate.toISOString().split("T")[0]}`,
-        priority: "high",
-        actionUrl: "/customer/bills",
-        actionText: "View Bill",
+        notificationType: 'billing',
+        title: 'New Bill Generated',
+        message: `Your electricity bill for ${billingMonth} has been generated. Amount: Rs. ${totalAmount.toFixed(2)}. Due date: ${dueDate.toISOString().split('T')[0]}`,
+        priority: 'high',
+        actionUrl: '/customer/bills',
+        actionText: 'View Bill',
         isRead: 0,
       } as any);
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Bill generated successfully",
-        data: {
-          billNumber,
-          totalAmount: totalAmount.toFixed(2),
-        },
+    return NextResponse.json({
+      success: true,
+      message: 'Bill generated successfully',
+      data: {
+        billNumber,
+        totalAmount: totalAmount.toFixed(2),
       },
-      { status: 201 },
-    );
+    }, { status: 201 });
+
   } catch (error) {
-    console.error("Error generating bill:", error);
+    console.error('Error generating bill:', error);
     return NextResponse.json(
-      { error: "Failed to generate bill" },
-      { status: 500 },
+      { error: 'Failed to generate bill' },
+      { status: 500 }
     );
   }
 }
+

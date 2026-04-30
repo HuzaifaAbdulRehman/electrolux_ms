@@ -1,26 +1,22 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-export default function ThemeProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     // Check for saved theme preference or default to dark
-    const savedTheme = localStorage.getItem("theme");
-    const isDark = savedTheme ? savedTheme === "dark" : true;
+    const savedTheme = localStorage.getItem('theme');
+    const isDark = savedTheme ? savedTheme === 'dark' : true;
 
     // Apply theme to document
     if (isDark) {
-      document.documentElement.classList.add("dark");
+      document.documentElement.classList.add('dark');
     } else {
-      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.remove('dark');
     }
-
+    
     setMounted(true);
   }, []);
 
@@ -31,3 +27,4 @@ export default function ThemeProvider({
 
   return <>{children}</>;
 }
+

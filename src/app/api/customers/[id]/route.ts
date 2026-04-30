@@ -1,36 +1,27 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/drizzle/db";
-import {
-  customers,
-  users,
-  bills,
-  payments,
-  meterReadings,
-} from "@/lib/drizzle/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/drizzle/db';
+import { customers, users, bills, payments, meterReadings } from '@/lib/drizzle/schema';
+import { eq, desc, sql } from 'drizzle-orm';
 
 // GET /api/customers/[id] - Get customer by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const customerId = parseInt(params.id, 10);
 
     // Customers can only view their own data
-    if (
-      session.user.userType === "customer" &&
-      session.user.customerId !== customerId
-    ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (session.user.userType === 'customer' && session.user.customerId !== customerId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Get customer details
@@ -41,10 +32,7 @@ export async function GET(
       .limit(1);
 
     if (!customer) {
-      return NextResponse.json(
-        { error: "Customer not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
     }
 
     // Get recent bills
@@ -112,11 +100,12 @@ export async function GET(
         statistics: stats,
       },
     });
+
   } catch (error) {
-    console.error("Error fetching customer:", error);
+    console.error('Error fetching customer:', error);
     return NextResponse.json(
-      { error: "Failed to fetch customer details" },
-      { status: 500 },
+      { error: 'Failed to fetch customer details' },
+      { status: 500 }
     );
   }
 }
@@ -124,33 +113,25 @@ export async function GET(
 // PATCH /api/customers/[id] - Update customer (Admin/Customer own profile)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const customerId = parseInt(params.id, 10);
 
     // Customers can only update their own profile with limited fields
-    if (
-      session.user.userType === "customer" &&
-      session.user.customerId !== customerId
-    ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (session.user.userType === 'customer' && session.user.customerId !== customerId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     let body = await request.json();
 
-    console.log(
-      "[UPDATE CUSTOMER] Request from:",
-      session.user.userType,
-      "for customer:",
-      customerId,
-    );
+    console.log('[UPDATE CUSTOMER] Request from:', session.user.userType, 'for customer:', customerId);
 
     // Get existing customer data
     const [existingCustomer] = await db
@@ -160,18 +141,15 @@ export async function PATCH(
       .limit(1);
 
     if (!existingCustomer) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Customer not found",
-        },
-        { status: 404 },
-      );
+      return NextResponse.json({
+        success: false,
+        error: 'Customer not found'
+      }, { status: 404 });
     }
 
     // If customer is updating their own profile, limit the fields they can update
-    if (session.user.userType === "customer") {
-      const allowedFields = ["phone", "address", "city", "state", "pincode"];
+    if (session.user.userType === 'customer') {
+      const allowedFields = ['phone', 'address', 'city', 'state', 'pincode'];
       const filteredBody: any = {};
       for (const field of allowedFields) {
         if (body[field] !== undefined) {
@@ -183,7 +161,7 @@ export async function PATCH(
 
     // Admin can update all fields
     const updateData: any = {
-      updatedAt: new Date(),
+      updatedAt: new Date()
     };
 
     // Update allowed fields
@@ -199,7 +177,7 @@ export async function PATCH(
     if (body.status) updateData.status = body.status;
 
     // Meter number update (Admin only)
-    if (body.meterNumber && session.user.userType === "admin") {
+    if (body.meterNumber && session.user.userType === 'admin') {
       // Check if meter number already exists (must be unique)
       const [existingMeter] = await db
         .select()
@@ -208,23 +186,18 @@ export async function PATCH(
         .limit(1);
 
       if (existingMeter && existingMeter.id !== customerId) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Meter number already exists",
-          },
-          { status: 400 },
-        );
+        return NextResponse.json({
+          success: false,
+          error: 'Meter number already exists'
+        }, { status: 400 });
       }
 
       updateData.meterNumber = body.meterNumber;
 
       // If assigning meter for first time, set status to active
       if (!existingCustomer.meterNumber && body.meterNumber) {
-        updateData.status = "active";
-        console.log(
-          "[UPDATE CUSTOMER] Meter assigned, setting status to active",
-        );
+        updateData.status = 'active';
+        console.log('[UPDATE CUSTOMER] Meter assigned, setting status to active');
       }
     }
 
@@ -235,9 +208,9 @@ export async function PATCH(
       .where(eq(customers.id, customerId));
 
     // If email or name changed, update user record too (Admin only)
-    if (session.user.userType === "admin" && (body.email || body.fullName)) {
+    if (session.user.userType === 'admin' && (body.email || body.fullName)) {
       const userUpdateData: any = {
-        updatedAt: new Date(),
+        updatedAt: new Date()
       };
       if (body.email) userUpdateData.email = body.email;
       if (body.fullName) userUpdateData.name = body.fullName;
@@ -247,51 +220,46 @@ export async function PATCH(
         .set(userUpdateData)
         .where(eq(users.id, existingCustomer.userId));
 
-      console.log("[UPDATE CUSTOMER] User record also updated");
+      console.log('[UPDATE CUSTOMER] User record also updated');
     }
 
-    console.log("[UPDATE CUSTOMER] Customer updated successfully");
+    console.log('[UPDATE CUSTOMER] Customer updated successfully');
 
     return NextResponse.json({
       success: true,
-      message: "Customer updated successfully",
+      message: 'Customer updated successfully'
     });
+
   } catch (error: any) {
-    console.error("[UPDATE CUSTOMER] Error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to update customer",
-        details: error.message,
-      },
-      { status: 500 },
-    );
+    console.error('[UPDATE CUSTOMER] Error:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to update customer',
+      details: error.message
+    }, { status: 500 });
   }
 }
 
 // DELETE /api/customers/[id] - Soft delete customer (Admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Only admin can delete customers
-    if (session.user.userType !== "admin") {
-      return NextResponse.json(
-        { error: "Forbidden - Admin access required" },
-        { status: 403 },
-      );
+    if (session.user.userType !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
     const customerId = parseInt(params.id, 10);
 
-    console.log("[DELETE CUSTOMER] Soft deleting customer ID:", customerId);
+    console.log('[DELETE CUSTOMER] Soft deleting customer ID:', customerId);
 
     // Get customer data first
     const [existingCustomer] = await db
@@ -301,13 +269,10 @@ export async function DELETE(
       .limit(1);
 
     if (!existingCustomer) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Customer not found",
-        },
-        { status: 404 },
-      );
+      return NextResponse.json({
+        success: false,
+        error: 'Customer not found'
+      }, { status: 404 });
     }
 
     // SOFT DELETE: Set status to inactive instead of deleting
@@ -315,8 +280,8 @@ export async function DELETE(
     await db
       .update(customers)
       .set({
-        status: "inactive",
-        updatedAt: new Date(),
+        status: 'inactive',
+        updatedAt: new Date()
       } as any)
       .where(eq(customers.id, customerId));
 
@@ -325,27 +290,23 @@ export async function DELETE(
       .update(users)
       .set({
         isActive: 0,
-        updatedAt: new Date(),
+        updatedAt: new Date()
       } as any)
       .where(eq(users.id, existingCustomer.userId));
 
-    console.log(
-      "[DELETE CUSTOMER] Customer soft deleted (status: inactive, user account disabled)",
-    );
+    console.log('[DELETE CUSTOMER] Customer soft deleted (status: inactive, user account disabled)');
 
     return NextResponse.json({
       success: true,
-      message: "Customer deactivated successfully",
+      message: 'Customer deactivated successfully'
     });
+
   } catch (error: any) {
-    console.error("[DELETE CUSTOMER] Error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to delete customer",
-        details: error.message,
-      },
-      { status: 500 },
-    );
+    console.error('[DELETE CUSTOMER] Error:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to delete customer',
+      details: error.message
+    }, { status: 500 });
   }
 }

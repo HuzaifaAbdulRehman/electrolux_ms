@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import CountUp from "react-countup";
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import CountUp from 'react-countup';
 
 /**
  * Homepage Statistics Data Structure
@@ -49,8 +49,8 @@ export default function AnimatedStats() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        console.log("[AnimatedStats] Fetching homepage stats...");
-        const response = await fetch("/api/homepage-stats");
+        console.log('[AnimatedStats] Fetching homepage stats...');
+        const response = await fetch('/api/homepage-stats');
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -60,15 +60,12 @@ export default function AnimatedStats() {
 
         if (result.success && result.data) {
           setStats(result.data);
-          console.log(
-            "[AnimatedStats] Stats loaded successfully:",
-            result.data,
-          );
+          console.log('[AnimatedStats] Stats loaded successfully:', result.data);
         } else {
-          throw new Error("Invalid response format");
+          throw new Error('Invalid response format');
         }
       } catch (err) {
-        console.error("[AnimatedStats] Error fetching stats:", err);
+        console.error('[AnimatedStats] Error fetching stats:', err);
         setError(true);
 
         // Set fallback stats to ensure UI never breaks
@@ -81,7 +78,7 @@ export default function AnimatedStats() {
           systemUptime: 99.9,
           responseTime: 50,
           realTimeMonitoring: true,
-          timestamp: new Date().toISOString(),
+          timestamp: new Date().toISOString()
         });
       } finally {
         setLoading(false);
@@ -111,23 +108,23 @@ export default function AnimatedStats() {
   const displayStats: StatConfig[] = [
     {
       value: stats.systemUptime,
-      label: "System Uptime",
-      suffix: "%",
+      label: 'System Uptime',
+      suffix: '%',
       decimals: 1,
-      isNumeric: true,
+      isNumeric: true
     },
     {
-      value: "24/7",
-      label: "Real-Time Monitoring",
-      isNumeric: false,
+      value: '24/7',
+      label: 'Real-Time Monitoring',
+      isNumeric: false
     },
     {
       value: stats.responseTime,
-      label: "Response Time",
-      suffix: "ms",
+      label: 'Response Time',
+      suffix: 'ms',
       decimals: 0,
-      isNumeric: true,
-    },
+      isNumeric: true
+    }
   ];
 
   // Animation variants for stagger effect
@@ -137,9 +134,9 @@ export default function AnimatedStats() {
       opacity: 1,
       transition: {
         staggerChildren: 0.15,
-        delayChildren: 0.2,
-      },
-    },
+        delayChildren: 0.2
+      }
+    }
   };
 
   const itemVariants = {
@@ -149,9 +146,9 @@ export default function AnimatedStats() {
       y: 0,
       transition: {
         duration: 0.6,
-        ease: [0.22, 1, 0.36, 1] as any, // Custom cubic-bezier easing for smooth animation
-      },
-    },
+        ease: [0.22, 1, 0.36, 1] as any // Custom cubic-bezier easing for smooth animation
+      }
+    }
   };
 
   return (
@@ -162,8 +159,12 @@ export default function AnimatedStats() {
       animate="visible"
     >
       {displayStats.map((stat, index) => (
-        <motion.div key={index} className="text-center" variants={itemVariants}>
-          {stat.isNumeric && typeof stat.value === "number" ? (
+        <motion.div
+          key={index}
+          className="text-center"
+          variants={itemVariants}
+        >
+          {stat.isNumeric && typeof stat.value === 'number' ? (
             <div className="text-3xl font-bold text-white">
               {stat.prefix}
               <CountUp
@@ -181,7 +182,9 @@ export default function AnimatedStats() {
               {stat.suffix}
             </div>
           ) : (
-            <div className="text-3xl font-bold text-white">{stat.value}</div>
+            <div className="text-3xl font-bold text-white">
+              {stat.value}
+            </div>
           )}
           <div className="text-sm text-gray-400 mt-1">{stat.label}</div>
         </motion.div>

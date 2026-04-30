@@ -1,190 +1,174 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/drizzle/db";
-import {
-  employees,
-  users,
-  workOrders,
-  meterReadings,
-} from "@/lib/drizzle/schema";
-import { eq, like, or, desc, sql, and } from "drizzle-orm";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/drizzle/db';
+import { employees, users } from '@/lib/drizzle/schema';
+import { eq } from 'drizzle-orm';
 
-// GET /api/employees - Get all employees (Admin only)
-export async function GET(request: NextRequest) {
+// PATCH /api/employees/[id] - Update employee (Admin only)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
+
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Only admin can view all employees
-    if (session.user.userType !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Only admin can update employees
+    if (session.user.userType !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
-    const searchParams = request.nextUrl.searchParams;
-    const search = searchParams.get("search") || "";
-    const department = searchParams.get("department") || "";
+    const employeeId = parseInt(params.id);
+    const body = await request.json();
 
-    let query = db
-      .select({
-        id: employees.id,
-        employeeName: employees.employeeName,
-        email: employees.email,
-        phone: employees.phone,
-        designation: employees.designation,
-        department: employees.department,
-        assignedZone: employees.assignedZone,
-        status: employees.status,
-        hireDate: employees.hireDate,
-        workOrdersCount: sql<number>`(SELECT COUNT(*) FROM work_orders WHERE employee_id = employees.id)`,
-        readingsCount: sql<number>`(SELECT COUNT(*) FROM meter_readings WHERE employee_id = employees.id)`,
-      })
+    console.log('[UPDATE EMPLOYEE] Updating employee ID:', employeeId);
+
+    // Get current employee data
+    const [existingEmployee] = await db
+      .select()
       .from(employees)
-      .$dynamic();
+      .where(eq(employees.id, employeeId))
+      .limit(1);
 
-    const conditions = [];
-
-    if (search) {
-      conditions.push(
-        or(
-          like(employees.employeeName, `%${search}%`),
-          like(employees.email, `%${search}%`),
-          like(employees.designation, `%${search}%`),
-        ),
-      );
+    if (!existingEmployee) {
+      return NextResponse.json({
+        success: false,
+        error: 'Employee not found'
+      }, { status: 404 });
     }
 
-    if (department) {
-      conditions.push(eq(employees.department, department));
+    // Prepare update data
+    const updateData: any = {
+      updatedAt: new Date()
+    };
+
+    // Update allowed fields
+    if (body.employeeName) updateData.employeeName = body.employeeName;
+    if (body.email) updateData.email = body.email;
+    if (body.phone) updateData.phone = body.phone;
+    if (body.designation) updateData.designation = body.designation;
+    if (body.department) updateData.department = body.department;
+    if (body.assignedZone) updateData.assignedZone = body.assignedZone;
+    if (body.status) updateData.status = body.status;
+
+    // Update employee record
+    await db
+      .update(employees)
+      .set(updateData)
+      .where(eq(employees.id, employeeId));
+
+    // If email or name changed, update user record too
+    if (body.email || body.employeeName) {
+      const userUpdateData: any = {
+        updatedAt: new Date()
+      };
+      if (body.email) userUpdateData.email = body.email;
+      if (body.employeeName) userUpdateData.name = body.employeeName;
+
+      await db
+        .update(users)
+        .set(userUpdateData)
+        .where(eq(users.id, existingEmployee.userId));
+
+      console.log('[UPDATE EMPLOYEE] User record also updated');
     }
 
-    if (conditions.length > 0) {
-      query = query.where(
-        conditions.length === 1 ? conditions[0] : (and(...conditions) as any),
-      );
-    }
+    // Fetch updated employee
+    const [updatedEmployee] = await db
+      .select()
+      .from(employees)
+      .where(eq(employees.id, employeeId))
+      .limit(1);
 
-    const result = await query.orderBy(desc(employees.createdAt));
+    console.log('[UPDATE EMPLOYEE] Employee updated successfully');
 
     return NextResponse.json({
       success: true,
-      data: result,
+      message: 'Employee updated successfully',
+      data: updatedEmployee
     });
-  } catch (error) {
-    console.error("Error fetching employees:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch employees" },
-      { status: 500 },
-    );
+
+  } catch (error: any) {
+    console.error('[UPDATE EMPLOYEE] Error:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to update employee',
+      details: error.message
+    }, { status: 500 });
   }
 }
 
-// POST /api/employees - Create new employee (Admin only)
-export async function POST(request: NextRequest) {
+// DELETE /api/employees/[id] - Soft delete employee (Admin only)
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
+
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (session.user.userType !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Only admin can delete employees
+    if (session.user.userType !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
-    const body = await request.json();
-    const {
-      employeeName,
-      email,
-      phone,
-      designation,
-      department,
-      assignedZone,
-    } = body;
+    const employeeId = parseInt(params.id);
 
-    if (!employeeName || !email || !phone || !designation || !department) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 },
-      );
-    }
+    console.log('[DELETE EMPLOYEE] Soft deleting employee ID:', employeeId);
 
-    // Ensure email is not already registered
-    const existing = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.email, email))
+    // Get employee data first
+    const [existingEmployee] = await db
+      .select()
+      .from(employees)
+      .where(eq(employees.id, employeeId))
       .limit(1);
 
-    if (existing.length > 0) {
-      return NextResponse.json(
-        { error: "User with this email already exists" },
-        { status: 409 },
-      );
+    if (!existingEmployee) {
+      return NextResponse.json({
+        success: false,
+        error: 'Employee not found'
+      }, { status: 404 });
     }
 
-    // Generate a cryptographically secure password for employee
-    const crypto = await import("crypto");
-    const randomPassword =
-      crypto.randomBytes(8).toString("base64").replace(/[/+=]/g, "") +
-      crypto.randomBytes(4).toString("hex").toUpperCase() +
-      "!@#";
-    const bcrypt = await import("bcryptjs");
-    const hashedPassword = await bcrypt.hash(randomPassword, 12);
+    // SOFT DELETE: Set status to inactive instead of deleting
+    // This preserves data integrity - work orders, assigned tasks remain intact
+    await db
+      .update(employees)
+      .set({
+        status: 'inactive',
+        updatedAt: new Date()
+      } as any)
+      .where(eq(employees.id, employeeId));
 
-    let newUser;
-    try {
-      [newUser] = await db.insert(users).values({
-        email,
-        password: hashedPassword,
-        userType: "employee",
-        name: employeeName,
-        phone,
-        isActive: 1,
-      });
-    } catch (e: any) {
-      const msg = String(e?.message || "");
-      if (msg.includes("Duplicate") || msg.includes("ER_DUP_ENTRY")) {
-        return NextResponse.json(
-          { error: "User with this email already exists" },
-          { status: 409 },
-        );
-      }
-      throw e;
-    }
+    // Also deactivate user account (can't login)
+    await db
+      .update(users)
+      .set({
+        isActive: 0,
+        updatedAt: new Date()
+      } as any)
+      .where(eq(users.id, existingEmployee.userId));
 
-    // Create employee record
-    const [newEmployee] = await db.insert(employees).values({
-      userId: newUser.insertId,
-      employeeName,
-      email,
-      phone,
-      designation,
-      department,
-      assignedZone,
-      status: "active",
-      hireDate: new Date().toISOString().split("T")[0],
-    } as any);
+    console.log('[DELETE EMPLOYEE] Employee soft deleted (status: inactive, user account disabled)');
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Employee created successfully",
-        data: {
-          employeeId: newEmployee.insertId,
-          email,
-          name: employeeName,
-          temporaryPassword: randomPassword,
-        },
-      },
-      { status: 201 },
-    );
-  } catch (error) {
-    console.error("Error creating employee:", error);
-    return NextResponse.json(
-      { error: "Failed to create employee" },
-      { status: 500 },
-    );
+    return NextResponse.json({
+      success: true,
+      message: 'Employee deactivated successfully'
+    });
+
+  } catch (error: any) {
+    console.error('[DELETE EMPLOYEE] Error:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to delete employee',
+      details: error.message
+    }, { status: 500 });
   }
 }

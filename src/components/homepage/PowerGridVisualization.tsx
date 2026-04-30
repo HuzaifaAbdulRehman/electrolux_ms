@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import { Zap } from "lucide-react";
+import { useEffect, useRef, useState } from 'react';
+import { Zap } from 'lucide-react';
 
 /**
  * Power Grid Network Visualization
@@ -22,7 +22,7 @@ interface GridNode {
   x: number;
   y: number;
   label: string;
-  type: "main" | "substation" | "zone";
+  type: 'main' | 'substation' | 'zone';
 }
 
 export default function PowerGridVisualization() {
@@ -32,23 +32,23 @@ export default function PowerGridVisualization() {
   // Define network topology - 5 ZONES (A-E) matching real database
   const nodes: GridNode[] = [
     // Main power source (center)
-    { id: "main", x: 50, y: 50, label: "Main Grid", type: "main" },
+    { id: 'main', x: 50, y: 50, label: 'Main Grid', type: 'main' },
 
     // Distribution zones (ZONE A to ZONE E) in a star pattern
-    { id: "zoneA", x: 50, y: 15, label: "Zone A", type: "zone" },
-    { id: "zoneB", x: 80, y: 35, label: "Zone B", type: "zone" },
-    { id: "zoneC", x: 80, y: 65, label: "Zone C", type: "zone" },
-    { id: "zoneD", x: 50, y: 85, label: "Zone D", type: "zone" },
-    { id: "zoneE", x: 20, y: 50, label: "Zone E", type: "zone" },
+    { id: 'zoneA', x: 50, y: 15, label: 'Zone A', type: 'zone' },
+    { id: 'zoneB', x: 80, y: 35, label: 'Zone B', type: 'zone' },
+    { id: 'zoneC', x: 80, y: 65, label: 'Zone C', type: 'zone' },
+    { id: 'zoneD', x: 50, y: 85, label: 'Zone D', type: 'zone' },
+    { id: 'zoneE', x: 20, y: 50, label: 'Zone E', type: 'zone' }
   ];
 
   // Define connections (Main grid to all 5 zones)
   const connections = [
-    { from: "main", to: "zoneA" },
-    { from: "main", to: "zoneB" },
-    { from: "main", to: "zoneC" },
-    { from: "main", to: "zoneD" },
-    { from: "main", to: "zoneE" },
+    { from: 'main', to: 'zoneA' },
+    { from: 'main', to: 'zoneB' },
+    { from: 'main', to: 'zoneC' },
+    { from: 'main', to: 'zoneD' },
+    { from: 'main', to: 'zoneE' }
   ];
 
   // Draw connections on canvas for performance
@@ -56,7 +56,7 @@ export default function PowerGridVisualization() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     // Set canvas size
@@ -70,8 +70,8 @@ export default function PowerGridVisualization() {
 
     // Draw connections
     connections.forEach(({ from, to }) => {
-      const fromNode = nodes.find((n) => n.id === from);
-      const toNode = nodes.find((n) => n.id === to);
+      const fromNode = nodes.find(n => n.id === from);
+      const toNode = nodes.find(n => n.id === to);
       if (!fromNode || !toNode) return;
 
       const x1 = (fromNode.x / 100) * rect.width;
@@ -83,10 +83,9 @@ export default function PowerGridVisualization() {
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
-      ctx.strokeStyle =
-        activeNode === from || activeNode === to
-          ? "rgba(251, 191, 36, 0.6)" // Yellow when active
-          : "rgba(59, 130, 246, 0.3)"; // Blue normally
+      ctx.strokeStyle = activeNode === from || activeNode === to
+        ? 'rgba(251, 191, 36, 0.6)' // Yellow when active
+        : 'rgba(59, 130, 246, 0.3)'; // Blue normally
       ctx.lineWidth = activeNode === from || activeNode === to ? 2 : 1;
       ctx.stroke();
     });
@@ -98,17 +97,17 @@ export default function PowerGridVisualization() {
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full"
-        style={{ pointerEvents: "none" }}
+        style={{ pointerEvents: 'none' }}
       />
 
       {/* Nodes */}
       {nodes.map((node) => {
-        const sizeClass = node.type === "main" ? "w-16 h-16" : "w-12 h-12";
+        const sizeClass = node.type === 'main' ? 'w-16 h-16' : 'w-12 h-12';
 
         const colorClass =
-          node.type === "main"
-            ? "bg-gradient-to-br from-yellow-400 to-orange-500"
-            : "bg-gradient-to-br from-purple-500 to-pink-500";
+          node.type === 'main'
+            ? 'bg-gradient-to-br from-yellow-400 to-orange-500'
+            : 'bg-gradient-to-br from-purple-500 to-pink-500';
 
         return (
           <div
@@ -117,7 +116,7 @@ export default function PowerGridVisualization() {
             style={{
               left: `${node.x}%`,
               top: `${node.y}%`,
-              transform: "translate(-50%, -50%)",
+              transform: 'translate(-50%, -50%)'
             }}
             onMouseEnter={() => setActiveNode(node.id)}
             onMouseLeave={() => setActiveNode(null)}
@@ -132,20 +131,14 @@ export default function PowerGridVisualization() {
               />
 
               {/* Electric pulse animation (only for main grid) */}
-              {node.type === "main" && (
-                <div
-                  className="absolute inset-0 rounded-full animate-ping opacity-20"
-                  style={{
-                    background:
-                      "radial-gradient(circle, rgba(251,191,36,1) 0%, rgba(251,191,36,0) 70%)",
-                  }}
-                />
+              {node.type === 'main' && (
+                <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{
+                  background: 'radial-gradient(circle, rgba(251,191,36,1) 0%, rgba(251,191,36,0) 70%)'
+                }} />
               )}
 
               {/* Icon */}
-              <Zap
-                className={`${node.type === "main" ? "w-8 h-8" : "w-6 h-6"} text-white drop-shadow-lg`}
-              />
+              <Zap className={`${node.type === 'main' ? 'w-8 h-8' : 'w-6 h-6'} text-white drop-shadow-lg`} />
 
               {/* Label on hover */}
               {activeNode === node.id && (
@@ -160,9 +153,7 @@ export default function PowerGridVisualization() {
 
       {/* Legend - Consistent with theme */}
       <div className="absolute bottom-3 left-3 bg-slate-800/60 backdrop-blur-md rounded-xl p-3 border border-purple-500/20 shadow-lg z-20">
-        <div className="text-xs text-purple-300 mb-2 font-semibold tracking-wide">
-          Distribution Network
-        </div>
+        <div className="text-xs text-purple-300 mb-2 font-semibold tracking-wide">Distribution Network</div>
         <div className="space-y-1.5">
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-sm shadow-yellow-500/50" />

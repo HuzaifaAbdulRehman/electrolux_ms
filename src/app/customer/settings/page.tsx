@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import DashboardLayout from "@/components/DashboardLayout";
+import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import DashboardLayout from '@/components/DashboardLayout';
 import {
   Bell,
   Shield,
@@ -21,14 +21,14 @@ import {
   Download,
   Loader2,
   X,
-  Mail,
-} from "lucide-react";
+  Mail
+} from 'lucide-react';
 
 export default function CustomerSettings() {
   const { data: session } = useSession();
   const router = useRouter();
 
-  const [activeSection, setActiveSection] = useState("security");
+  const [activeSection, setActiveSection] = useState('security');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -38,33 +38,33 @@ export default function CustomerSettings() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   });
 
   const [preferences, setPreferences] = useState({
-    dateFormat: "DD/MM/YYYY",
-    theme: "auto",
+    dateFormat: 'DD/MM/YYYY',
+    theme: 'auto'
   });
 
   // Load preferences from localStorage on mount
   useEffect(() => {
-    const savedPreferencesStr = localStorage.getItem("customerPreferences");
+    const savedPreferencesStr = localStorage.getItem('customerPreferences');
     if (savedPreferencesStr) {
       try {
         const savedPreferences = JSON.parse(savedPreferencesStr);
         setPreferences(savedPreferences);
         applyTheme(savedPreferences.theme);
       } catch (e) {
-        console.error("Failed to parse saved preferences:", e);
-        const savedTheme = localStorage.getItem("theme") || "auto";
-        setPreferences((prev) => ({ ...prev, theme: savedTheme }));
+        console.error('Failed to parse saved preferences:', e);
+        const savedTheme = localStorage.getItem('theme') || 'auto';
+        setPreferences(prev => ({ ...prev, theme: savedTheme }));
         applyTheme(savedTheme);
       }
     } else {
-      const savedTheme = localStorage.getItem("theme") || "auto";
-      setPreferences((prev) => ({ ...prev, theme: savedTheme }));
+      const savedTheme = localStorage.getItem('theme') || 'auto';
+      setPreferences(prev => ({ ...prev, theme: savedTheme }));
       applyTheme(savedTheme);
     }
   }, []);
@@ -73,19 +73,17 @@ export default function CustomerSettings() {
   const applyTheme = (theme: string) => {
     const root = document.documentElement;
 
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else if (theme === "light") {
-      root.classList.remove("dark");
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else if (theme === 'light') {
+      root.classList.remove('dark');
     } else {
       // Auto - use system preference
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)",
-      ).matches;
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       if (prefersDark) {
-        root.classList.add("dark");
+        root.classList.add('dark');
       } else {
-        root.classList.remove("dark");
+        root.classList.remove('dark');
       }
     }
   };
@@ -96,56 +94,46 @@ export default function CustomerSettings() {
       setError(null);
 
       // Fetch all paid bills
-      const response = await fetch("/api/bills?status=paid&limit=1000");
+      const response = await fetch('/api/bills?status=paid&limit=1000');
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || "Failed to fetch billing history");
+        throw new Error(result.error || 'Failed to fetch billing history');
       }
 
       const bills = result.data;
 
       if (bills.length === 0) {
-        setError("No billing history available to download");
+        setError('No billing history available to download');
         return;
       }
 
       // Convert to CSV
-      const headers = [
-        "Bill Number",
-        "Billing Period",
-        "Issue Date",
-        "Due Date",
-        "Units Consumed",
-        "Base Amount",
-        "Total Amount",
-        "Status",
-        "Payment Date",
-      ];
-      const csvRows = [headers.join(",")];
+      const headers = ['Bill Number', 'Billing Period', 'Issue Date', 'Due Date', 'Units Consumed', 'Base Amount', 'Total Amount', 'Status', 'Payment Date'];
+      const csvRows = [headers.join(',')];
 
       bills.forEach((bill: any) => {
         const row = [
-          bill.billNumber || "N/A",
-          bill.billingPeriod || "N/A",
-          bill.issueDate || "N/A",
-          bill.dueDate || "N/A",
-          bill.unitsConsumed || "0",
-          `Rs. ${bill.baseAmount || "0"}`,
-          `Rs. ${bill.totalAmount || "0"}`,
-          bill.status || "N/A",
-          bill.paymentDate || "N/A",
+          bill.billNumber || 'N/A',
+          bill.billingPeriod || 'N/A',
+          bill.issueDate || 'N/A',
+          bill.dueDate || 'N/A',
+          bill.unitsConsumed || '0',
+          `Rs. ${bill.baseAmount || '0'}`,
+          `Rs. ${bill.totalAmount || '0'}`,
+          bill.status || 'N/A',
+          bill.paymentDate || 'N/A'
         ];
-        csvRows.push(row.join(","));
+        csvRows.push(row.join(','));
       });
 
       // Create and download file
-      const csvContent = csvRows.join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv" });
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = url;
-      link.download = `billing-history-${new Date().toISOString().split("T")[0]}.csv`;
+      link.download = `billing-history-${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -153,9 +141,10 @@ export default function CustomerSettings() {
 
       setSuccess(`Downloaded ${bills.length} billing statements successfully!`);
       setTimeout(() => setSuccess(null), 3000);
+
     } catch (err: any) {
-      console.error("Error downloading statements:", err);
-      setError(err.message || "Failed to download billing history");
+      console.error('Error downloading statements:', err);
+      setError(err.message || 'Failed to download billing history');
     } finally {
       setLoading(false);
     }
@@ -167,36 +156,32 @@ export default function CustomerSettings() {
     setSuccess(null);
 
     // Validation
-    if (
-      !passwordData.currentPassword ||
-      !passwordData.newPassword ||
-      !passwordData.confirmPassword
-    ) {
-      setError("All password fields are required");
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      setError('All password fields are required');
       return;
     }
 
     if (passwordData.newPassword.length < 8) {
-      setError("New password must be at least 8 characters long");
+      setError('New password must be at least 8 characters long');
       return;
     }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setError("New passwords do not match");
+      setError('New passwords do not match');
       return;
     }
 
     if (passwordData.currentPassword === passwordData.newPassword) {
-      setError("New password must be different from current password");
+      setError('New password must be different from current password');
       return;
     }
 
     try {
       setLoading(true);
 
-      const response = await fetch("/api/auth/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword,
@@ -206,18 +191,15 @@ export default function CustomerSettings() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || "Failed to change password");
+        throw new Error(result.error || 'Failed to change password');
       }
 
-      setSuccess("Password changed successfully!");
-      setPasswordData({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
+      setSuccess('Password changed successfully!');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setTimeout(() => setSuccess(null), 5000);
+
     } catch (err: any) {
-      setError(err.message || "Failed to change password. Please try again.");
+      setError(err.message || 'Failed to change password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -229,26 +211,24 @@ export default function CustomerSettings() {
 
     try {
       // Save preferences to localStorage (client-side only)
-      localStorage.setItem("customerPreferences", JSON.stringify(preferences));
+      localStorage.setItem('customerPreferences', JSON.stringify(preferences));
 
-      setSuccess("Preferences saved successfully!");
+      setSuccess('Preferences saved successfully!');
       setTimeout(() => setSuccess(null), 3000);
+
     } catch (err: any) {
-      setError(err.message || "Failed to save preferences. Please try again.");
+      setError(err.message || 'Failed to save preferences. Please try again.');
     }
   };
 
   const menuItems = [
-    { id: "security", label: "Security", icon: Shield },
-    { id: "preferences", label: "Preferences", icon: Monitor },
-    { id: "billing", label: "Billing Settings", icon: CreditCard },
+    { id: 'security', label: 'Security', icon: Shield },
+    { id: 'preferences', label: 'Preferences', icon: Monitor },
+    { id: 'billing', label: 'Billing Settings', icon: CreditCard }
   ];
 
   return (
-    <DashboardLayout
-      userType="customer"
-      userName={session?.user?.name || "Customer"}
-    >
+    <DashboardLayout userType="customer" userName={session?.user?.name || 'Customer'}>
       <div className="space-y-6">
         {/* Header */}
         <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-gray-200 dark:border-white/10">
@@ -267,10 +247,7 @@ export default function CustomerSettings() {
             <div className="flex-1">
               <p className="text-red-400 font-semibold">{error}</p>
             </div>
-            <button
-              onClick={() => setError(null)}
-              className="text-red-400 hover:text-red-300"
-            >
+            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-300">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -283,10 +260,7 @@ export default function CustomerSettings() {
             <div className="flex-1">
               <p className="text-green-400 font-semibold">{success}</p>
             </div>
-            <button
-              onClick={() => setSuccess(null)}
-              className="text-green-400 hover:text-green-300"
-            >
+            <button onClick={() => setSuccess(null)} className="text-green-400 hover:text-green-300">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -307,8 +281,8 @@ export default function CustomerSettings() {
                     }}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
                       activeSection === item.id
-                        ? "bg-gradient-to-r from-yellow-400 to-orange-500 text-white"
-                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10"
+                        ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10'
                     }`}
                   >
                     <item.icon className="w-5 h-5" />
@@ -323,7 +297,7 @@ export default function CustomerSettings() {
           <div className="lg:col-span-3">
             <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-gray-200 dark:border-white/10">
               {/* Security Section */}
-              {activeSection === "security" && (
+              {activeSection === 'security' && (
                 <div className="space-y-6">
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
                     Security Settings
@@ -336,15 +310,10 @@ export default function CustomerSettings() {
                       </label>
                       <div className="relative">
                         <input
-                          type={showPassword ? "text" : "password"}
+                          type={showPassword ? 'text' : 'password'}
                           value={passwordData.currentPassword}
-                          onChange={(e) =>
-                            setPasswordData({
-                              ...passwordData,
-                              currentPassword: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-3 pr-12 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-500  dark:placeholder-gray-400 focus:outline-none focus:border-blue-500 dark:focus:border-yellow-400"
+                          onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                          className="w-full px-4 py-3 pr-12 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-blue-500 dark:focus:border-yellow-400"
                           placeholder="Enter current password"
                         />
                         <button
@@ -352,11 +321,7 @@ export default function CustomerSettings() {
                           onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 dark:text-gray-400"
                         >
-                          {showPassword ? (
-                            <EyeOff className="w-5 h-5" />
-                          ) : (
-                            <Eye className="w-5 h-5" />
-                          )}
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                         </button>
                       </div>
                     </div>
@@ -367,15 +332,10 @@ export default function CustomerSettings() {
                       </label>
                       <div className="relative">
                         <input
-                          type={showNewPassword ? "text" : "password"}
+                          type={showNewPassword ? 'text' : 'password'}
                           value={passwordData.newPassword}
-                          onChange={(e) =>
-                            setPasswordData({
-                              ...passwordData,
-                              newPassword: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-3 pr-12 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-500  dark:placeholder-gray-400 focus:outline-none focus:border-blue-500 dark:focus:border-yellow-400"
+                          onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                          className="w-full px-4 py-3 pr-12 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-blue-500 dark:focus:border-yellow-400"
                           placeholder="Enter new password"
                         />
                         <button
@@ -383,11 +343,7 @@ export default function CustomerSettings() {
                           onClick={() => setShowNewPassword(!showNewPassword)}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 dark:text-gray-400"
                         >
-                          {showNewPassword ? (
-                            <EyeOff className="w-5 h-5" />
-                          ) : (
-                            <Eye className="w-5 h-5" />
-                          )}
+                          {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                         </button>
                       </div>
                     </div>
@@ -398,29 +354,18 @@ export default function CustomerSettings() {
                       </label>
                       <div className="relative">
                         <input
-                          type={showConfirmPassword ? "text" : "password"}
+                          type={showConfirmPassword ? 'text' : 'password'}
                           value={passwordData.confirmPassword}
-                          onChange={(e) =>
-                            setPasswordData({
-                              ...passwordData,
-                              confirmPassword: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-3 pr-12 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-blue-500 dark:focus:border-yellow-400"
+                          onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                          className="w-full px-4 py-3 pr-12 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-blue-500 dark:focus:border-yellow-400"
                           placeholder="Confirm new password"
                         />
                         <button
                           type="button"
-                          onClick={() =>
-                            setShowConfirmPassword(!showConfirmPassword)
-                          }
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 dark:text-gray-400"
                         >
-                          {showConfirmPassword ? (
-                            <EyeOff className="w-5 h-5" />
-                          ) : (
-                            <Eye className="w-5 h-5" />
-                          )}
+                          {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                         </button>
                       </div>
                     </div>
@@ -447,7 +392,7 @@ export default function CustomerSettings() {
               )}
 
               {/* Preferences Section */}
-              {activeSection === "preferences" && (
+              {activeSection === 'preferences' && (
                 <div className="space-y-6">
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
                     General Preferences
@@ -460,32 +405,12 @@ export default function CustomerSettings() {
                       </label>
                       <select
                         value={preferences.dateFormat}
-                        onChange={(e) =>
-                          setPreferences({
-                            ...preferences,
-                            dateFormat: e.target.value,
-                          })
-                        }
+                        onChange={(e) => setPreferences({...preferences, dateFormat: e.target.value})}
                         className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 dark:focus:border-yellow-400 font-medium"
                       >
-                        <option
-                          value="MM/DD/YYYY"
-                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2"
-                        >
-                          MM/DD/YYYY
-                        </option>
-                        <option
-                          value="DD/MM/YYYY"
-                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2"
-                        >
-                          DD/MM/YYYY
-                        </option>
-                        <option
-                          value="YYYY-MM-DD"
-                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2"
-                        >
-                          YYYY-MM-DD
-                        </option>
+                        <option value="MM/DD/YYYY" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2">MM/DD/YYYY</option>
+                        <option value="DD/MM/YYYY" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2">DD/MM/YYYY</option>
+                        <option value="YYYY-MM-DD" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2">YYYY-MM-DD</option>
                       </select>
                     </div>
 
@@ -494,9 +419,7 @@ export default function CustomerSettings() {
                         Currency
                       </label>
                       <div className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-white/20 rounded-lg">
-                        <p className="text-gray-900 dark:text-white font-medium">
-                          PKR (Rs.) - Pakistani Rupee
-                        </p>
+                        <p className="text-gray-900 dark:text-white font-medium">PKR (Rs.) - Pakistani Rupee</p>
                       </div>
                     </div>
 
@@ -508,30 +431,15 @@ export default function CustomerSettings() {
                         value={preferences.theme}
                         onChange={(e) => {
                           const newTheme = e.target.value;
-                          setPreferences({ ...preferences, theme: newTheme });
-                          localStorage.setItem("theme", newTheme);
+                          setPreferences({...preferences, theme: newTheme});
+                          localStorage.setItem('theme', newTheme);
                           applyTheme(newTheme);
                         }}
                         className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 dark:focus:border-yellow-400 font-medium"
                       >
-                        <option
-                          value="light"
-                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2"
-                        >
-                          Light
-                        </option>
-                        <option
-                          value="dark"
-                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2"
-                        >
-                          Dark
-                        </option>
-                        <option
-                          value="auto"
-                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2"
-                        >
-                          Auto (System)
-                        </option>
+                        <option value="light" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2">Light</option>
+                        <option value="dark" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2">Dark</option>
+                        <option value="auto" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2">Auto (System)</option>
                       </select>
                     </div>
                   </div>
@@ -547,7 +455,7 @@ export default function CustomerSettings() {
               )}
 
               {/* Billing Settings */}
-              {activeSection === "billing" && (
+              {activeSection === 'billing' && (
                 <div className="space-y-6">
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
                     Billing Settings
@@ -584,3 +492,4 @@ export default function CustomerSettings() {
     </DashboardLayout>
   );
 }
+

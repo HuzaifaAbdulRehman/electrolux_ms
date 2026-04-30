@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import DashboardLayout from "@/components/DashboardLayout";
+import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import DashboardLayout from '@/components/DashboardLayout';
 import {
   ClipboardList,
   User,
@@ -17,9 +17,9 @@ import {
   Search,
   Filter,
   X,
-  FileText,
-} from "lucide-react";
-import { formatPKPhone } from "@/lib/utils/dataHandlers";
+  FileText
+} from 'lucide-react';
+import { formatPKPhone } from '@/lib/utils/dataHandlers';
 
 interface ReadingRequest {
   id: number;
@@ -28,8 +28,8 @@ interface ReadingRequest {
   requestDate: string;
   preferredDate: string | null;
   requestReason: string | null;
-  priority: "normal" | "urgent";
-  status: "pending" | "assigned" | "completed" | "cancelled";
+  priority: 'normal' | 'urgent';
+  status: 'pending' | 'assigned' | 'completed' | 'cancelled';
   notes: string | null;
   workOrderId: number | null;
   assignedDate: string | null;
@@ -59,20 +59,18 @@ export default function ReadingRequestsPage() {
   const [requests, setRequests] = useState<ReadingRequest[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState<ReadingRequest | null>(
-    null,
-  );
+  const [selectedRequest, setSelectedRequest] = useState<ReadingRequest | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState('');
   const [assigning, setAssigning] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    if (session?.user.userType === "admin") {
+    if (session?.user.userType === 'admin') {
       fetchRequests();
       fetchEmployees();
     }
@@ -81,7 +79,7 @@ export default function ReadingRequestsPage() {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/reading-requests");
+      const response = await fetch('/api/reading-requests');
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
@@ -89,7 +87,7 @@ export default function ReadingRequestsPage() {
         }
       }
     } catch (error) {
-      console.error("Error fetching reading requests:", error);
+      console.error('Error fetching reading requests:', error);
     } finally {
       setLoading(false);
     }
@@ -97,7 +95,7 @@ export default function ReadingRequestsPage() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch("/api/employees");
+      const response = await fetch('/api/employees');
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
@@ -105,7 +103,7 @@ export default function ReadingRequestsPage() {
         }
       }
     } catch (error) {
-      console.error("Error fetching employees:", error);
+      console.error('Error fetching employees:', error);
     }
   };
 
@@ -116,14 +114,14 @@ export default function ReadingRequestsPage() {
       setAssigning(true);
       setError(null);
 
-      console.log("[Admin] Assigning request:", {
+      console.log('[Admin] Assigning request:', {
         requestId: selectedRequest.id,
         employeeId: selectedEmployee,
       });
 
-      const response = await fetch("/api/reading-requests/assign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/reading-requests/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           requestId: selectedRequest.id,
           employeeId: parseInt(selectedEmployee),
@@ -132,64 +130,56 @@ export default function ReadingRequestsPage() {
       });
 
       const result = await response.json();
-      console.log("[Admin] Assign response:", result);
+      console.log('[Admin] Assign response:', result);
 
       if (response.ok && result.success) {
-        setSuccess(result.message || "Request assigned successfully!");
+        setSuccess(result.message || 'Request assigned successfully!');
         setShowAssignModal(false);
         setSelectedRequest(null);
-        setSelectedEmployee("");
+        setSelectedEmployee('');
         fetchRequests(); // Refresh to get updated data
 
         // Hide success message after 3 seconds
         setTimeout(() => setSuccess(null), 3000);
       } else {
-        setError(result.error || "Failed to assign request");
-        console.error("[Admin] Assignment failed:", result.error);
+        setError(result.error || 'Failed to assign request');
+        console.error('[Admin] Assignment failed:', result.error);
       }
     } catch (error) {
-      console.error("[Admin] Error assigning request:", error);
-      setError("Network error. Please try again.");
+      console.error('[Admin] Error assigning request:', error);
+      setError('Network error. Please try again.');
     } finally {
       setAssigning(false);
     }
   };
 
-  const filteredRequests = requests.filter((request) => {
+  const filteredRequests = requests.filter(request => {
     const matchesSearch =
       request.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.customerAccount
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
+      request.customerAccount.toLowerCase().includes(searchQuery.toLowerCase()) ||
       request.requestNumber.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === "all" || request.status === statusFilter;
-    const matchesPriority =
-      priorityFilter === "all" || request.priority === priorityFilter;
+    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
+    const matchesPriority = priorityFilter === 'all' || request.priority === priorityFilter;
 
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
   const stats = {
     total: requests.length,
-    pending: requests.filter((r) => r.status === "pending").length,
-    assigned: requests.filter((r) => r.status === "assigned").length,
-    completed: requests.filter((r) => r.status === "completed").length,
+    pending: requests.filter(r => r.status === 'pending').length,
+    assigned: requests.filter(r => r.status === 'assigned').length,
+    completed: requests.filter(r => r.status === 'completed').length,
   };
 
-  if (session?.user.userType !== "admin") {
+  if (session?.user.userType !== 'admin') {
     return (
       <DashboardLayout userType="admin">
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Access Denied
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Only admins can access this page.
-            </p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Access Denied</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">Only admins can access this page.</p>
           </div>
         </div>
       </DashboardLayout>
@@ -215,9 +205,7 @@ export default function ReadingRequestsPage() {
           {success && (
             <div className="mb-6 bg-green-500/20 border border-green-500/50 rounded-xl p-4 flex items-center space-x-3">
               <CheckCircle className="w-5 h-5 text-green-500" />
-              <span className="text-green-700 dark:text-green-300 font-medium">
-                {success}
-              </span>
+              <span className="text-green-700 dark:text-green-300 font-medium">{success}</span>
             </div>
           )}
 
@@ -225,9 +213,7 @@ export default function ReadingRequestsPage() {
           {error && (
             <div className="mb-6 bg-red-500/20 border border-red-500/50 rounded-xl p-4 flex items-center space-x-3">
               <AlertCircle className="w-5 h-5 text-red-500" />
-              <span className="text-red-700 dark:text-red-300 font-medium">
-                {error}
-              </span>
+              <span className="text-red-700 dark:text-red-300 font-medium">{error}</span>
             </div>
           )}
 
@@ -236,12 +222,8 @@ export default function ReadingRequestsPage() {
             <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl p-4 border border-gray-200 dark:border-white/10">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Total Requests
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {stats.total}
-                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Requests</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
                 </div>
                 <FileText className="w-8 h-8 text-blue-500" />
               </div>
@@ -249,12 +231,8 @@ export default function ReadingRequestsPage() {
             <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl p-4 border border-gray-200 dark:border-white/10">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Pending
-                  </p>
-                  <p className="text-2xl font-bold text-yellow-500">
-                    {stats.pending}
-                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Pending</p>
+                  <p className="text-2xl font-bold text-yellow-500">{stats.pending}</p>
                 </div>
                 <Clock className="w-8 h-8 text-yellow-500" />
               </div>
@@ -262,12 +240,8 @@ export default function ReadingRequestsPage() {
             <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl p-4 border border-gray-200 dark:border-white/10">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Assigned
-                  </p>
-                  <p className="text-2xl font-bold text-blue-500">
-                    {stats.assigned}
-                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Assigned</p>
+                  <p className="text-2xl font-bold text-blue-500">{stats.assigned}</p>
                 </div>
                 <UserCheck className="w-8 h-8 text-blue-500" />
               </div>
@@ -275,12 +249,8 @@ export default function ReadingRequestsPage() {
             <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl p-4 border border-gray-200 dark:border-white/10">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Completed
-                  </p>
-                  <p className="text-2xl font-bold text-green-500">
-                    {stats.completed}
-                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
+                  <p className="text-2xl font-bold text-green-500">{stats.completed}</p>
                 </div>
                 <CheckCircle className="w-8 h-8 text-green-500" />
               </div>
@@ -339,22 +309,16 @@ export default function ReadingRequestsPage() {
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-red-500" />
-                <span className="ml-3 text-gray-600 dark:text-gray-400">
-                  Loading requests...
-                </span>
+                <span className="ml-3 text-gray-600 dark:text-gray-400">Loading requests...</span>
               </div>
             ) : filteredRequests.length === 0 ? (
               <div className="text-center py-12">
                 <ClipboardList className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-gray-400 font-medium">
-                  No reading requests found
-                </p>
+                <p className="text-gray-600 dark:text-gray-400 font-medium">No reading requests found</p>
                 <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-                  {searchQuery ||
-                  statusFilter !== "all" ||
-                  priorityFilter !== "all"
-                    ? "Try adjusting your filters"
-                    : "Requests will appear here when customers submit them"}
+                  {searchQuery || statusFilter !== 'all' || priorityFilter !== 'all'
+                    ? 'Try adjusting your filters'
+                    : 'Requests will appear here when customers submit them'}
                 </p>
               </div>
             ) : (
@@ -373,18 +337,18 @@ export default function ReadingRequestsPage() {
                           </span>
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                              request.status === "pending"
-                                ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
-                                : request.status === "assigned"
-                                  ? "bg-blue-500/20 text-blue-600 dark:text-blue-400"
-                                  : request.status === "completed"
-                                    ? "bg-green-500/20 text-green-600 dark:text-green-400"
-                                    : "bg-gray-500/20 text-gray-600 dark:text-gray-400"
+                              request.status === 'pending'
+                                ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
+                                : request.status === 'assigned'
+                                ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                                : request.status === 'completed'
+                                ? 'bg-green-500/20 text-green-600 dark:text-green-400'
+                                : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'
                             }`}
                           >
                             {request.status.toUpperCase()}
                           </span>
-                          {request.priority === "urgent" && (
+                          {request.priority === 'urgent' && (
                             <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-600 dark:text-red-400">
                               URGENT
                             </span>
@@ -418,7 +382,7 @@ export default function ReadingRequestsPage() {
                           </div>
                         )}
                       </div>
-                      {request.status === "pending" && (
+                      {request.status === 'pending' && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -444,13 +408,11 @@ export default function ReadingRequestsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-white/10">
             <div className="bg-gradient-to-r from-red-500 to-pink-500 p-5 flex items-center justify-between rounded-t-2xl">
-              <h2 className="text-xl font-bold text-white">
-                Assign to Employee
-              </h2>
+              <h2 className="text-xl font-bold text-white">Assign to Employee</h2>
               <button
                 onClick={() => {
                   setShowAssignModal(false);
-                  setSelectedEmployee("");
+                  setSelectedEmployee('');
                 }}
                 className="p-2 hover:bg-white/20 rounded-lg transition-colors"
               >
@@ -460,15 +422,9 @@ export default function ReadingRequestsPage() {
 
             <div className="p-6">
               <div className="mb-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                  Customer
-                </p>
-                <p className="font-semibold text-gray-900 dark:text-white">
-                  {selectedRequest.customerName}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {selectedRequest.customerAccount}
-                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Customer</p>
+                <p className="font-semibold text-gray-900 dark:text-white">{selectedRequest.customerName}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{selectedRequest.customerAccount}</p>
               </div>
 
               <div className="mb-6">
@@ -483,9 +439,7 @@ export default function ReadingRequestsPage() {
                   <option value="">Choose an employee...</option>
                   {employees.map((emp) => (
                     <option key={emp.id} value={emp.id}>
-                      {emp.employeeName} (
-                      {emp.email ? emp.email.split("@")[0] : emp.employeeNumber}
-                      ) - {emp.department} - {emp.designation}
+                      {emp.employeeName} ({emp.email ? emp.email.split('@')[0] : emp.employeeNumber}) - {emp.department} - {emp.designation}
                     </option>
                   ))}
                 </select>
@@ -495,7 +449,7 @@ export default function ReadingRequestsPage() {
                 <button
                   onClick={() => {
                     setShowAssignModal(false);
-                    setSelectedEmployee("");
+                    setSelectedEmployee('');
                   }}
                   className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
@@ -506,8 +460,8 @@ export default function ReadingRequestsPage() {
                   disabled={!selectedEmployee || assigning}
                   className={`flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg font-semibold transition-all ${
                     !selectedEmployee || assigning
-                      ? "opacity-50 cursor-not-allowed"
-                      : "hover:shadow-lg hover:shadow-red-500/50"
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'hover:shadow-lg hover:shadow-red-500/50'
                   }`}
                 >
                   {assigning ? (
@@ -516,7 +470,7 @@ export default function ReadingRequestsPage() {
                       Assigning...
                     </span>
                   ) : (
-                    "Assign Request"
+                    'Assign Request'
                   )}
                 </button>
               </div>

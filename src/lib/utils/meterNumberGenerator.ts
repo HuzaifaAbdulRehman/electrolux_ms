@@ -1,149 +1,121 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/drizzle/db";
-import { customers, users, meterReadings } from "@/lib/drizzle/schema";
-import { eq, desc } from "drizzle-orm";
+import { db } from '@/lib/drizzle/db';
+import { customers } from '@/lib/drizzle/schema';
+import { sql } from 'drizzle-orm';
 
-export async function GET(request: NextRequest) {
+/**
+ * City code mapping for meter number generation
+ */
+const CITY_CODES: Record<string, string> = {
+  'Karachi': 'KHI',
+  'Lahore': 'LHE', 
+  'Islamabad': 'ISB',
+  'Rawalpindi': 'RWP',
+  'Faisalabad': 'FSD',
+  'Multan': 'MLT',
+  'Peshawar': 'PES',
+  'Quetta': 'QTA',
+  'Hyderabad': 'HYD',
+  'Gujranwala': 'GJW',
+  'Sialkot': 'SKT',
+  'Sargodha': 'SRG',
+  'Bahawalpur': 'BWP',
+  'Sukkur': 'SKR',
+  'Larkana': 'LKN',
+  'Nawabshah': 'NWS',
+  'Mirpur Khas': 'MKS',
+  'Jacobabad': 'JBD',
+  'Shikarpur': 'SKP',
+  'Khairpur': 'KHP'
+};
+
+/**
+ * Get city code from city name
+ */
+export function getCityCode(city: string): string {
+  const normalizedCity = city.trim();
+  return CITY_CODES[normalizedCity] || 'GEN'; // GEN for general/other cities
+}
+
+/**
+ * Generate next sequential meter number
+ * Format: MTR-{CITY_CODE}-{6_DIGIT_SEQUENCE}
+ * Example: MTR-KHI-000017
+ */
+export async function generateMeterNumber(city: string): Promise<string> {
+  const cityCode = getCityCode(city);
+
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Get customer data based on user ID
-    const userId = parseInt(session.user.id, 10);
-
-    const [customerData] = await db
-      .select({
-        id: customers.id,
-        accountNumber: customers.accountNumber,
-        meterNumber: customers.meterNumber,
-        zone: customers.zone,
-        fullName: customers.fullName,
-        email: customers.email,
-        phone: customers.phone,
-        address: customers.address,
-        city: customers.city,
-        state: customers.state,
-        pincode: customers.pincode,
-        connectionType: customers.connectionType,
-        status: customers.status,
-        connectionDate: customers.connectionDate,
-        dateOfBirth: customers.dateOfBirth,
-        lastBillAmount: customers.lastBillAmount,
-        lastPaymentDate: customers.lastPaymentDate,
-        averageMonthlyUsage: customers.averageMonthlyUsage,
-        outstandingBalance: customers.outstandingBalance,
-        paymentStatus: customers.paymentStatus,
-      })
+    // Get all customers with meter numbers for this city and find max manually
+    const existingMeters = await db
+      .select({ meterNumber: customers.meterNumber })
       .from(customers)
-      .where(eq(customers.userId, userId))
-      .limit(1);
+      .where(sql`${customers.meterNumber} LIKE ${`MTR-${cityCode}-%`}`);
 
-    if (!customerData) {
-      return NextResponse.json(
-        { error: "Customer profile not found" },
-        { status: 404 },
-      );
+    let maxId = 0;
+
+    // Parse existing meter numbers to find the highest sequence
+    for (const meter of existingMeters) {
+      if (meter.meterNumber) {
+        const match = meter.meterNumber.match(/^MTR-[A-Z]{3}-(\d{6})$/);
+        if (match) {
+          const id = parseInt(match[1], 10);
+          if (id > maxId) {
+            maxId = id;
+          }
+        }
+      }
     }
 
-    // Fetch the latest meter reading for this customer
-    const [latestReading] = await db
-      .select({
-        currentReading: meterReadings.currentReading,
-        readingDate: meterReadings.readingDate,
-      })
-      .from(meterReadings)
-      .where(eq(meterReadings.customerId, customerData.id))
-      .orderBy(desc(meterReadings.readingDate))
-      .limit(1);
+    const nextId = maxId + 1;
+    const paddedId = String(nextId).padStart(6, '0');
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...customerData,
-        lastReading: latestReading?.currentReading || null,
-        lastReadingDate: latestReading?.readingDate || null,
-      },
-    });
+    return `MTR-${cityCode}-${paddedId}`;
+
   } catch (error) {
-    console.error("Profile API error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch profile data" },
-      { status: 500 },
-    );
+    console.error('Error generating meter number:', error);
+    // Fallback: use timestamp-based ID
+    const timestamp = Date.now();
+    const fallbackId = String(timestamp).slice(-6);
+    return `MTR-${cityCode}-${fallbackId}`;
   }
 }
 
-export async function PUT(request: NextRequest) {
+/**
+ * Validate meter number format
+ */
+export function isValidMeterNumber(meterNumber: string): boolean {
+  const pattern = /^MTR-[A-Z]{3}-\d{6}$/;
+  return pattern.test(meterNumber);
+}
+
+/**
+ * Check if meter number exists and is available for registration
+ */
+export async function isMeterNumberAvailable(meterNumber: string): Promise<boolean> {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userId = parseInt(session.user.id, 10);
-    const body = await request.json();
-
-    // Validate required fields
-    if (!body.fullName || body.fullName.trim() === "") {
-      return NextResponse.json(
-        { error: "Full name is required" },
-        { status: 400 },
-      );
-    }
-
-    if (!body.email || !/^\S+@\S+\.\S+$/.test(body.email)) {
-      return NextResponse.json(
-        { error: "Valid email is required" },
-        { status: 400 },
-      );
-    }
-
-    // Prepare update data for customers table
-    const customerUpdateData: any = {
-      fullName: body.fullName.trim(),
-      email: body.email.trim(),
-      phone: body.phone || "",
-      address: body.address || "",
-      city: body.city || "",
-      state: body.state || "",
-      pincode: body.pincode || "",
-      dateOfBirth: body.dateOfBirth || null,
-    };
-
-    // 🔒 TRANSACTION FIX: Wrap both updates in a transaction for atomicity
-    await db.transaction(async (tx) => {
-      // Update customers table
-      await tx
-        .update(customers)
-        .set(customerUpdateData)
-        .where(eq(customers.userId, userId));
-
-      // IMPORTANT: Also update the users table to keep names synchronized
-      // This ensures the session name and profile name stay in sync
-      await tx
-        .update(users)
-        .set({
-          name: body.fullName.trim(),
-          email: body.email.trim(),
-        })
-        .where(eq(users.id, userId));
-    }); // End transaction
-
-    return NextResponse.json({
-      success: true,
-      message: "Profile updated successfully",
-    });
+    const result = await db
+      .select({ id: customers.id })
+      .from(customers)
+      .where(sql`${customers.meterNumber} = ${meterNumber}`)
+      .limit(1);
+    
+    return result.length === 0;
   } catch (error) {
-    console.error("Profile update error:", error);
-    return NextResponse.json(
-      { error: "Failed to update profile" },
-      { status: 500 },
-    );
+    console.error('Error checking meter number availability:', error);
+    return false;
   }
 }
+
+/**
+ * Get meter number info (city, sequence)
+ */
+export function parseMeterNumber(meterNumber: string): { cityCode: string; sequence: number } | null {
+  const match = meterNumber.match(/^MTR-([A-Z]{3})-(\d{6})$/);
+  if (!match) return null;
+  
+  return {
+    cityCode: match[1],
+    sequence: parseInt(match[2], 10)
+  };
+}
+

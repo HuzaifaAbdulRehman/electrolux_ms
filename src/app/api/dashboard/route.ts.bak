@@ -1,0 +1,209 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/drizzle/db';
+import { customers, bills, payments, meterReadings, workOrders, employees, outages } from '@/lib/drizzle/schema';
+import { eq, sql, desc, and, gte, lte } from 'drizzle-orm';
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    console.log('[Dashboard API] Fetching dashboard data for:', session.user.userType, session.user.id);
+
+    // Get current month for calculations
+    const currentDate = new Date();
+    const currentMonth = currentDate.toISOString().substring(0, 7);
+
+    // 1. BASIC METRICS (DBMS: Aggregate Functions)
+    const [totalCustomers] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+        .from(customers)
+        .where(eq(customers.status, 'active'));
+
+    const [totalEmployees] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+        .from(employees)
+        .where(eq(employees.status, 'active'));
+
+    const [totalBills] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(bills)
+      .where(sql`${bills.billingMonth} LIKE ${currentMonth + '%'}`);
+
+    const [activeBills] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(bills)
+      .where(eq(bills.status, 'issued'));
+
+    const [totalRevenue] = await db
+        .select({
+        total: sql<number>`COALESCE(SUM(${bills.totalAmount}), 0)`
+      })
+      .from(bills)
+      .where(sql`${bills.billingMonth} LIKE ${currentMonth + '%'}`);
+
+    const [outstandingAmount] = await db
+        .select({
+        total: sql<number>`COALESCE(SUM(${bills.totalAmount}), 0)`
+        })
+        .from(bills)
+        .where(eq(bills.status, 'issued'));
+
+    const [paidBills] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(bills)
+      .where(and(
+        sql`${bills.billingMonth} LIKE ${currentMonth + '%'}`,
+        eq(bills.status, 'paid')
+      ));
+
+    // 2. RECENT BILLS (DBMS: JOIN Operations)
+      const recentBills = await db
+        .select({
+          id: bills.id,
+          customerName: customers.fullName,
+        accountNumber: customers.accountNumber,
+          totalAmount: bills.totalAmount,
+          status: bills.status,
+        billingMonth: bills.billingMonth,
+        dueDate: bills.dueDate
+        })
+        .from(bills)
+      .innerJoin(customers, eq(bills.customerId, customers.id))
+      .where(sql`${bills.billingMonth} LIKE ${currentMonth + '%'}`)
+      .orderBy(desc(bills.createdAt))
+        .limit(5);
+
+    // 3. REVENUE BY CATEGORY (DBMS: GROUP BY)
+    const revenueByCategory = await db
+        .select({
+        category: sql<string>`CASE 
+          WHEN ${bills.totalAmount} < 100 THEN 'Low'
+          WHEN ${bills.totalAmount} < 500 THEN 'Medium'
+          ELSE 'High'
+        END`.as('category'),
+        total: sql<number>`SUM(${bills.totalAmount})`
+      })
+      .from(bills)
+      .where(sql`${bills.billingMonth} LIKE ${currentMonth + '%'}`)
+      .groupBy(sql`CASE 
+        WHEN ${bills.totalAmount} < 100 THEN 'Low'
+        WHEN ${bills.totalAmount} < 500 THEN 'Medium'
+        ELSE 'High'
+      END`);
+
+    // 4. MONTHLY REVENUE TREND (DBMS: Date Functions)
+    const monthlyRevenue = await db
+        .select({
+        month: sql<string>`SUBSTRING(${bills.billingMonth}, 1, 7)`,
+        revenue: sql<number>`SUM(${bills.totalAmount})`
+      })
+      .from(bills)
+      .where(sql`${bills.billingMonth} >= '2024-01'`)
+      .groupBy(sql`SUBSTRING(${bills.billingMonth}, 1, 7)`)
+      .orderBy(sql`SUBSTRING(${bills.billingMonth}, 1, 7)`);
+
+    // 5. PAYMENT METHODS (DBMS: JOIN with Payments)
+    const paymentMethods = await db
+        .select({
+        method: payments.paymentMethod,
+        count: sql<number>`COUNT(*)`,
+        total: sql<number>`SUM(${payments.paymentAmount})`
+        })
+        .from(payments)
+      .innerJoin(bills, eq(payments.billId, bills.id))
+      .where(sql`${bills.billingMonth} LIKE ${currentMonth + '%'}`)
+      .groupBy(payments.paymentMethod);
+
+    // 6. WORK ORDERS STATUS (DBMS: Conditional Aggregation)
+    const workOrderStats = await db
+      .select({
+        status: workOrders.status,
+        count: sql<number>`COUNT(*)`
+      })
+      .from(workOrders)
+      .groupBy(workOrders.status);
+
+    // 7. CUSTOMER GROWTH (DBMS: Date Range Queries)
+    const customerGrowth = await db
+      .select({
+        month: sql<string>`SUBSTRING(${customers.createdAt}, 1, 7)`,
+        count: sql<number>`COUNT(*)`
+      })
+      .from(customers)
+      .where(sql`${customers.createdAt} >= '2024-01-01'`)
+      .groupBy(sql`SUBSTRING(${customers.createdAt}, 1, 7)`)
+      .orderBy(sql`SUBSTRING(${customers.createdAt}, 1, 7)`);
+
+    // Calculate derived metrics
+    const metrics = {
+      totalCustomers: totalCustomers.count,
+      totalEmployees: totalEmployees.count,
+      activeBills: activeBills.count,
+      monthlyRevenue: totalRevenue.total || 0,
+      outstandingAmount: outstandingAmount.total || 0,
+      collectionRate: totalBills.count > 0 ? parseFloat(((paidBills.count / totalBills.count) * 100).toFixed(1)) : 0,
+      totalBills: totalBills.count,
+      paidBills: paidBills.count,
+      pendingBills: totalBills.count - paidBills.count,
+      paymentRate: totalBills.count > 0 ? (paidBills.count / totalBills.count) * 100 : 0,
+      averageBillAmount: totalBills.count > 0 ? (totalRevenue.total || 0) / totalBills.count : 0
+    };
+
+    // Format data for charts
+    const revenueByCategoryFormatted = revenueByCategory.reduce((acc, item) => {
+      acc[item.category] = item.total;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const monthlyRevenueFormatted = monthlyRevenue.map(item => ({
+      month: item.month,
+      revenue: item.revenue || 0
+    }));
+
+    const paymentMethodsFormatted = paymentMethods.reduce((acc, item) => {
+      acc[item.method] = {
+        count: item.count,
+        total: item.total || 0
+      };
+      return acc;
+    }, {} as Record<string, { count: number; total: number }>);
+
+    const dashboardData = {
+      metrics,
+      recentBills,
+      revenueByCategory: revenueByCategoryFormatted,
+      monthlyRevenue: monthlyRevenueFormatted,
+      paymentMethods: paymentMethodsFormatted,
+      workOrderStats: workOrderStats.reduce((acc, item) => {
+        acc[item.status] = item.count;
+        return acc;
+      }, {} as Record<string, number>),
+      customerGrowth: customerGrowth.map(item => ({
+        month: item.month,
+        count: item.count
+      }))
+    };
+
+    console.log('[Dashboard API] Dashboard data fetched successfully');
+    console.log('[Dashboard API] Metrics:', metrics);
+
+      return NextResponse.json({
+        success: true,
+      data: dashboardData,
+      message: 'Dashboard data fetched successfully'
+    });
+
+  } catch (error: any) {
+    console.error('[Dashboard API] Error fetching dashboard data:', error);
+    return NextResponse.json({
+      error: 'Failed to fetch dashboard data',
+      details: error.message
+    }, { status: 500 });
+  }
+}
+

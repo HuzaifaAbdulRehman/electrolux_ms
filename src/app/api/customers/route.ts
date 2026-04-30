@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/drizzle/db";
-import { customers, users } from "@/lib/drizzle/schema";
-import { eq, like, or, desc, asc, and, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/drizzle/db';
+import { customers, users } from '@/lib/drizzle/schema';
+import { eq, like, or, desc, asc, and, sql } from 'drizzle-orm';
 
 // GET /api/customers - Get all customers (Admin/Employee only)
 export async function GET(request: NextRequest) {
@@ -11,29 +11,26 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Only admin and employees can view all customers
-    if (
-      session.user.userType !== "admin" &&
-      session.user.userType !== "employee"
-    ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (session.user.userType !== 'admin' && session.user.userType !== 'employee') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Get query parameters for filtering and pagination
     const searchParams = request.nextUrl.searchParams;
-    const customerId = searchParams.get("customerId") || searchParams.get("id");
-    const countOnly = searchParams.get("countOnly");
-    const zone = searchParams.get("zone");
-    const search = searchParams.get("search") || "";
-    const status = searchParams.get("status") || "";
-    const connectionType = searchParams.get("connectionType") || "";
-    const sortBy = searchParams.get("sortBy") || "createdAt";
-    const sortOrder = searchParams.get("sortOrder") || "desc";
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "10", 10);
+    const customerId = searchParams.get('customerId') || searchParams.get('id');
+    const countOnly = searchParams.get('countOnly');
+    const zone = searchParams.get('zone');
+    const search = searchParams.get('search') || '';
+    const status = searchParams.get('status') || '';
+    const connectionType = searchParams.get('connectionType') || '';
+    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
     const offset = (page - 1) * limit;
 
     // If customerId is provided, fetch that specific customer
@@ -72,7 +69,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fast path: countOnly with optional zone filter
-    if (countOnly === "true") {
+    if (countOnly === 'true') {
       const conditions: any[] = [];
       if (zone) conditions.push(eq(customers.zone, zone));
 
@@ -82,17 +79,12 @@ export async function GET(request: NextRequest) {
         .$dynamic();
 
       if (conditions.length > 0) {
-        countQuery = countQuery.where(
-          conditions.length === 1 ? conditions[0] : (and(...conditions) as any),
-        );
+        countQuery = countQuery.where(conditions.length === 1 ? conditions[0] : and(...conditions) as any);
       }
 
-      const [result] = (await countQuery) as any;
+      const [result] = await countQuery as any;
 
-      return NextResponse.json({
-        success: true,
-        data: { count: Number(result.count) },
-      });
+      return NextResponse.json({ success: true, data: { count: Number(result.count) } });
     }
 
     // Build query
@@ -132,8 +124,8 @@ export async function GET(request: NextRequest) {
           like(customers.email, `%${search}%`),
           like(customers.accountNumber, `%${search}%`),
           like(customers.meterNumber, `%${search}%`),
-          like(customers.phone, `%${search}%`),
-        ),
+          like(customers.phone, `%${search}%`)
+        )
       );
     }
 
@@ -147,24 +139,21 @@ export async function GET(request: NextRequest) {
 
     // Apply conditions
     if (conditions.length > 0) {
-      query = query.where(
-        conditions.length === 1 ? conditions[0] : (and(...conditions) as any),
-      );
+      query = query.where(conditions.length === 1 ? conditions[0] : and(...conditions) as any);
     }
 
     // Apply sorting
-    const orderByColumn =
-      {
-        createdAt: customers.createdAt,
-        fullName: customers.fullName,
-        accountNumber: customers.accountNumber,
-        connectionType: customers.connectionType,
-        status: customers.status,
-        outstandingBalance: customers.outstandingBalance,
-      }[sortBy] || customers.createdAt;
+    const orderByColumn = {
+      'createdAt': customers.createdAt,
+      'fullName': customers.fullName,
+      'accountNumber': customers.accountNumber,
+      'connectionType': customers.connectionType,
+      'status': customers.status,
+      'outstandingBalance': customers.outstandingBalance,
+    }[sortBy] || customers.createdAt;
 
     query = query.orderBy(
-      sortOrder === "asc" ? asc(orderByColumn) : desc(orderByColumn),
+      sortOrder === 'asc' ? asc(orderByColumn) : desc(orderByColumn)
     );
 
     // Apply pagination
@@ -179,12 +168,10 @@ export async function GET(request: NextRequest) {
       .$dynamic();
 
     if (conditions.length > 0) {
-      countQuery = countQuery.where(
-        conditions.length === 1 ? conditions[0] : (and(...conditions) as any),
-      );
+      countQuery = countQuery.where(conditions.length === 1 ? conditions[0] : and(...conditions) as any);
     }
 
-    const [{ count }] = (await countQuery) as any;
+    const [{ count }] = await countQuery as any;
 
     return NextResponse.json({
       success: true,
@@ -196,11 +183,12 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(Number(count) / limit),
       },
     });
+
   } catch (error) {
-    console.error("Error fetching customers:", error);
+    console.error('Error fetching customers:', error);
     return NextResponse.json(
-      { error: "Failed to fetch customers" },
-      { status: 500 },
+      { error: 'Failed to fetch customers' },
+      { status: 500 }
     );
   }
 }
@@ -211,12 +199,12 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Only admin can create customers
-    if (session.user.userType !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (session.user.userType !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -228,24 +216,11 @@ export async function POST(request: NextRequest) {
     const propertyType = body.propertyType || body.connectionType;
 
     // Validate required fields (zone and installation charges required for consistency)
-    if (
-      !applicantName ||
-      !body.email ||
-      !body.phone ||
-      !propertyAddress ||
-      !body.city ||
-      !body.state ||
-      !body.pincode ||
-      !propertyType ||
-      !body.zone ||
-      !body.installationCharges
-    ) {
+    if (!applicantName || !body.email || !body.phone || !propertyAddress ||
+        !body.city || !body.state || !body.pincode || !propertyType || !body.zone || !body.installationCharges) {
       return NextResponse.json(
-        {
-          error:
-            "Missing required fields. Zone and installation charges are required.",
-        },
-        { status: 400 },
+        { error: 'Missing required fields. Zone and installation charges are required.' },
+        { status: 400 }
       );
     }
 
@@ -253,55 +228,46 @@ export async function POST(request: NextRequest) {
     const installationCharges = parseFloat(body.installationCharges);
     if (isNaN(installationCharges) || installationCharges < 0) {
       return NextResponse.json(
-        { error: "Installation charges must be a valid positive number" },
-        { status: 400 },
+        { error: 'Installation charges must be a valid positive number' },
+        { status: 400 }
       );
     }
 
     // Generate a cryptographically secure password
-    const crypto = await import("crypto");
-    const randomPassword =
-      crypto.randomBytes(8).toString("base64").replace(/[/+=]/g, "") +
-      crypto.randomBytes(4).toString("hex").toUpperCase() +
-      "!@#";
-    const bcrypt = await import("bcryptjs");
+    const crypto = await import('crypto');
+    const randomPassword = crypto.randomBytes(8).toString('base64').replace(/[/+=]/g, '') +
+                          crypto.randomBytes(4).toString('hex').toUpperCase() + '!@#';
+    const bcrypt = await import('bcryptjs');
     const hashedPassword = await bcrypt.hash(randomPassword, 12);
 
     const [newUser] = await db.insert(users).values({
       email: body.email,
       password: hashedPassword,
-      userType: "customer",
+      userType: 'customer',
       name: applicantName,
       phone: body.phone,
       isActive: 1,
     });
 
-    console.log("[CREATE CUSTOMER] User created with ID:", newUser.insertId);
+    console.log('[CREATE CUSTOMER] User created with ID:', newUser.insertId);
 
     // Generate account number (unique timestamp-based)
     // Format: ELX-YYYY-XXXXXX-RRR (Year-Timestamp-Random)
-    const randomSuffix = crypto.randomBytes(2).toString("hex").toUpperCase();
+    const randomSuffix = crypto.randomBytes(2).toString('hex').toUpperCase();
     const accountNumber = `ELX-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}-${randomSuffix}`;
 
     // Path policy:
     // - Admin-created (offline): fully detailed, meter auto-generated, status active
     // - Online self-registration (separate route): minimal fields, status pending_installation until meter install
 
-    const customerStatus = "active";
+    const customerStatus = 'active';
 
     // Temporarily set meter; will finalize after we know the new customer ID
-    let meterNumber = "TEMP";
+    let meterNumber = 'TEMP';
 
-    console.log(
-      "[CREATE CUSTOMER - ADMIN DIRECT] Account number:",
-      accountNumber,
-    );
-    console.log(
-      "[CREATE CUSTOMER - ADMIN DIRECT] Meter will be auto-generated",
-    );
-    console.log(
-      "[CREATE CUSTOMER - ADMIN DIRECT] Status: active (offline customer registration)",
-    );
+    console.log('[CREATE CUSTOMER - ADMIN DIRECT] Account number:', accountNumber);
+    console.log('[CREATE CUSTOMER - ADMIN DIRECT] Meter will be auto-generated');
+    console.log('[CREATE CUSTOMER - ADMIN DIRECT] Status: active (offline customer registration)');
 
     // Create customer record (offline, complete details)
     // Note: Additional fields like fatherName, idType, idNumber, etc. are not stored in customers table
@@ -320,50 +286,44 @@ export async function POST(request: NextRequest) {
       zone: body.zone,
       connectionType: propertyType,
       status: customerStatus,
-      connectionDate:
-        body.connectionDate || new Date().toISOString().split("T")[0],
+      connectionDate: body.connectionDate || new Date().toISOString().split('T')[0],
       installationCharges: installationCharges,
     } as any);
 
     const customerId = newCustomer.insertId;
-    console.log("[CREATE CUSTOMER] Customer created with ID:", customerId);
+    console.log('[CREATE CUSTOMER] Customer created with ID:', customerId);
 
     // If meter number was set to TEMP, update with actual customer ID
-    if (meterNumber === "TEMP") {
+    if (meterNumber === 'TEMP') {
       // Meter number format: MTR-{CustomerID}-{Year}
-      const actualMeterNumber = `MTR-${String(customerId).padStart(6, "0")}-${new Date().getFullYear()}`;
+      const actualMeterNumber = `MTR-${String(customerId).padStart(6, '0')}-${new Date().getFullYear()}`;
 
-      await db
-        .update(customers)
+      await db.update(customers)
         .set({ meterNumber: actualMeterNumber } as any)
         .where(eq(customers.id, customerId));
 
       meterNumber = actualMeterNumber;
-      console.log(
-        "[CREATE CUSTOMER] Meter number updated to:",
-        actualMeterNumber,
-      );
+      console.log('[CREATE CUSTOMER] Meter number updated to:', actualMeterNumber);
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Customer created successfully with meter assigned",
-        data: {
-          id: customerId,
-          accountNumber,
-          meterNumber,
-          status: customerStatus,
-          temporaryPassword: randomPassword, // Admin should provide this to customer
-        },
+    return NextResponse.json({
+      success: true,
+      message: 'Customer created successfully with meter assigned',
+      data: {
+        id: customerId,
+        accountNumber,
+        meterNumber,
+        status: customerStatus,
+        temporaryPassword: randomPassword, // Admin should provide this to customer
       },
-      { status: 201 },
-    );
+    }, { status: 201 });
+
   } catch (error) {
-    console.error("Error creating customer:", error);
+    console.error('Error creating customer:', error);
     return NextResponse.json(
-      { error: "Failed to create customer" },
-      { status: 500 },
+      { error: 'Failed to create customer' },
+      { status: 500 }
     );
   }
 }
+

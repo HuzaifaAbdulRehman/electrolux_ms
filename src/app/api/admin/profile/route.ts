@@ -1,16 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/drizzle/db";
-import { users, employees } from "@/lib/drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/drizzle/db';
+import { users, employees } from '@/lib/drizzle/schema';
+import { eq, and } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     // Fetch user data
@@ -21,14 +24,17 @@ export async function GET(req: NextRequest) {
       .limit(1);
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
     }
 
     // Check if user is admin
-    if (user.userType !== "admin") {
+    if (user.userType !== 'admin') {
       return NextResponse.json(
-        { error: "Access denied. Admin only." },
-        { status: 403 },
+        { error: 'Access denied. Admin only.' },
+        { status: 403 }
       );
     }
 
@@ -39,16 +45,16 @@ export async function GET(req: NextRequest) {
         id: user.id,
         name: user.name,
         email: user.email,
-        phone: user.phone || "",
+        phone: user.phone || '',
         userType: user.userType,
-        createdAt: user.createdAt,
-      },
+        createdAt: user.createdAt
+      }
     });
   } catch (error) {
-    console.error("Error fetching admin profile:", error);
+    console.error('Error fetching admin profile:', error);
     return NextResponse.json(
-      { error: "Failed to fetch admin profile" },
-      { status: 500 },
+      { error: 'Failed to fetch admin profile' },
+      { status: 500 }
     );
   }
 }
@@ -58,7 +64,10 @@ export async function PUT(req: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     const body = await req.json();
@@ -71,8 +80,11 @@ export async function PUT(req: NextRequest) {
       .where(eq(users.email, session.user.email))
       .limit(1);
 
-    if (!user || user.userType !== "admin") {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    if (!user || user.userType !== 'admin') {
+      return NextResponse.json(
+        { error: 'Access denied' },
+        { status: 403 }
+      );
     }
 
     // Update user profile
@@ -80,19 +92,20 @@ export async function PUT(req: NextRequest) {
       .update(users)
       .set({
         name: name || user.name,
-        phone: phone || user.phone,
+        phone: phone || user.phone
       })
       .where(eq(users.id, user.id));
 
     return NextResponse.json({
       success: true,
-      message: "Profile updated successfully",
+      message: 'Profile updated successfully'
     });
   } catch (error) {
-    console.error("Error updating admin profile:", error);
+    console.error('Error updating admin profile:', error);
     return NextResponse.json(
-      { error: "Failed to update profile" },
-      { status: 500 },
+      { error: 'Failed to update profile' },
+      { status: 500 }
     );
   }
 }
+

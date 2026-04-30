@@ -1,16 +1,8 @@
-import { db } from "@/lib/drizzle/db";
-import {
-  bills,
-  customers,
-  payments,
-  users,
-  workOrders,
-  tariffs,
-  tariffSlabs,
-} from "@/lib/drizzle/schema";
-import { eq, sql, and, desc, asc } from "drizzle-orm";
-import bcrypt from "bcryptjs";
-import crypto from "crypto";
+import { db } from '@/lib/drizzle/db';
+import { bills, customers, payments, users, workOrders, tariffs, tariffSlabs } from '@/lib/drizzle/schema';
+import { eq, sql, and, desc, asc } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 /**
  * TRANSACTION SERVICE FOR ACID COMPLIANCE
@@ -34,7 +26,7 @@ export async function processPaymentTransaction(
   amount: number,
   paymentMethod: string,
   transactionId: string,
-  processedBy?: number,
+  processedBy?: number
 ) {
   // MySQL doesn't support native transactions in Drizzle yet,
   // so we'll use a try-catch with manual rollback logic
@@ -49,10 +41,10 @@ export async function processPaymentTransaction(
         billId,
         paymentAmount: amount.toString(),
         paymentMethod,
-        paymentDate: new Date().toISOString().split("T")[0],
+        paymentDate: new Date().toISOString().split('T')[0],
         transactionId,
         receiptNumber: `RCP-${Date.now()}`,
-        status: "completed",
+        status: 'completed',
       } as any);
 
       paymentId = paymentResult.insertId;
@@ -64,12 +56,12 @@ export async function processPaymentTransaction(
         .where(eq(bills.id, billId));
 
       if (!billData) {
-        throw new Error("Bill not found");
+        throw new Error('Bill not found');
       }
 
       // Step 3: Update bill status
       const billAmount = parseFloat(billData.totalAmount);
-      const newStatus = amount >= billAmount ? "paid" : "issued";
+      const newStatus = amount >= billAmount ? 'paid' : 'issued';
 
       await tx
         .update(bills)
@@ -97,17 +89,15 @@ export async function processPaymentTransaction(
         .from(customers)
         .where(eq(customers.id, customerId));
 
-      const outstanding =
-        (outstandingResult[0]?.totalDue || 0) -
-        (outstandingResult[0]?.totalPaid || 0);
+      const outstanding = (outstandingResult[0]?.totalDue || 0) - (outstandingResult[0]?.totalPaid || 0);
 
       // Step 5: Update customer record
       await tx
         .update(customers)
         .set({
-          lastPaymentDate: new Date().toISOString().split("T")[0],
+          lastPaymentDate: new Date().toISOString().split('T')[0],
           outstandingBalance: outstanding.toString(),
-          paymentStatus: outstanding > 0 ? "pending" : "paid",
+          paymentStatus: outstanding > 0 ? 'pending' : 'paid',
           updatedAt: new Date(),
         } as any)
         .where(eq(customers.id, customerId));
@@ -121,20 +111,18 @@ export async function processPaymentTransaction(
     });
   } catch (error) {
     // Transaction automatically rolls back on error
-    console.error("Payment transaction failed:", error);
+    console.error('Payment transaction failed:', error);
 
     // Manual cleanup if needed (shouldn't be necessary with proper transaction)
     if (paymentId) {
       try {
         await db.delete(payments).where(eq(payments.id, paymentId));
       } catch (cleanupError) {
-        console.error("Cleanup failed:", cleanupError);
+        console.error('Cleanup failed:', cleanupError);
       }
     }
 
-    throw new Error(
-      `Payment processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-    );
+    throw new Error(`Payment processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -151,7 +139,7 @@ export async function registerCustomerTransaction(userData: {
   city: string;
   state: string;
   pincode: string;
-  connectionType: "residential" | "commercial" | "industrial";
+  connectionType: 'residential' | 'commercial' | 'industrial';
 }) {
   let userId: number | null = null;
 
@@ -165,7 +153,7 @@ export async function registerCustomerTransaction(userData: {
         .limit(1);
 
       if (existingUser.length > 0) {
-        throw new Error("Email already registered");
+        throw new Error('Email already registered');
       }
 
       // Step 2: Generate secure password hash
@@ -176,7 +164,7 @@ export async function registerCustomerTransaction(userData: {
       const [userResult] = await tx.insert(users).values({
         email: userData.email,
         password: hashedPassword,
-        userType: "customer",
+        userType: 'customer',
         name: userData.name,
         phone: userData.phone,
         isActive: 1,
@@ -186,8 +174,8 @@ export async function registerCustomerTransaction(userData: {
 
       // Step 4: Generate unique account and meter numbers
       const timestamp = Date.now();
-      const accountNumber = `ELX-${new Date().getFullYear()}-${String(userId).padStart(6, "0")}`;
-      const meterNumber = `MTR-${String(userId).padStart(6, "0")}`;
+      const accountNumber = `ELX-${new Date().getFullYear()}-${String(userId).padStart(6, '0')}`;
+      const meterNumber = `MTR-${String(userId).padStart(6, '0')}`;
 
       // Step 5: Create customer record
       const [customerResult] = await tx.insert(customers).values({
@@ -202,12 +190,12 @@ export async function registerCustomerTransaction(userData: {
         state: userData.state,
         pincode: userData.pincode,
         connectionType: userData.connectionType,
-        status: "active",
-        connectionDate: new Date().toISOString().split("T")[0],
-        lastBillAmount: "0",
-        outstandingBalance: "0",
-        averageMonthlyUsage: "0",
-        paymentStatus: "paid",
+        status: 'active',
+        connectionDate: new Date().toISOString().split('T')[0],
+        lastBillAmount: '0',
+        outstandingBalance: '0',
+        averageMonthlyUsage: '0',
+        paymentStatus: 'paid',
       } as any);
 
       // Transaction commits automatically
@@ -221,20 +209,18 @@ export async function registerCustomerTransaction(userData: {
     });
   } catch (error) {
     // Transaction automatically rolls back
-    console.error("Registration transaction failed:", error);
+    console.error('Registration transaction failed:', error);
 
     // Manual cleanup shouldn't be needed with proper transaction
     if (userId) {
       try {
         await db.delete(users).where(eq(users.id, userId));
       } catch (cleanupError) {
-        console.error("User cleanup failed:", cleanupError);
+        console.error('User cleanup failed:', cleanupError);
       }
     }
 
-    throw new Error(
-      `Registration failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-    );
+    throw new Error(`Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -246,7 +232,7 @@ export async function generateBillTransaction(
   customerId: number,
   meterReadingId: number,
   unitsConsumed: number,
-  tariffId: number,
+  tariffId: number
 ) {
   try {
     return await db.transaction(async (tx) => {
@@ -258,7 +244,7 @@ export async function generateBillTransaction(
         .limit(1);
 
       if (!tariffData) {
-        throw new Error("Tariff not found");
+        throw new Error('Tariff not found');
       }
 
       // Step 2: Get tariff slabs from normalized tariff_slabs table
@@ -269,7 +255,7 @@ export async function generateBillTransaction(
         .orderBy(asc(tariffSlabs.slabOrder));
 
       if (slabs.length === 0) {
-        throw new Error("No tariff slabs found for this tariff");
+        throw new Error('No tariff slabs found for this tariff');
       }
 
       // Step 3: Calculate bill amount using normalized slab structure
@@ -289,13 +275,10 @@ export async function generateBillTransaction(
       }
 
       // Step 4: Calculate charges and taxes
-      const fixedCharges = parseFloat(tariffData.fixedCharge || "0");
-      const electricityDuty =
-        baseAmount *
-        (parseFloat(tariffData.electricityDutyPercent || "0") / 100);
+      const fixedCharges = parseFloat(tariffData.fixedCharge || '0');
+      const electricityDuty = baseAmount * (parseFloat(tariffData.electricityDutyPercent || '0') / 100);
       const subtotal = baseAmount + fixedCharges + electricityDuty;
-      const gstAmount =
-        subtotal * (parseFloat(tariffData.gstPercent || "0") / 100);
+      const gstAmount = subtotal * (parseFloat(tariffData.gstPercent || '0') / 100);
       const finalAmount = subtotal + gstAmount;
 
       // Step 5: Generate bill number
@@ -309,9 +292,9 @@ export async function generateBillTransaction(
       const [billResult] = await tx.insert(bills).values({
         customerId,
         billNumber,
-        billingMonth: currentDate.toISOString().split("T")[0],
-        issueDate: currentDate.toISOString().split("T")[0],
-        dueDate: dueDate.toISOString().split("T")[0],
+        billingMonth: currentDate.toISOString().split('T')[0],
+        issueDate: currentDate.toISOString().split('T')[0],
+        dueDate: dueDate.toISOString().split('T')[0],
         meterReadingId,
         unitsConsumed: unitsConsumed.toString(),
         baseAmount: baseAmount.toString(),
@@ -319,7 +302,7 @@ export async function generateBillTransaction(
         electricityDuty: electricityDuty.toString(),
         gstAmount: gstAmount.toString(),
         totalAmount: finalAmount.toString(),
-        status: "issued",
+        status: 'issued',
       } as any);
 
       // Step 7: Update customer outstanding balance
@@ -328,7 +311,7 @@ export async function generateBillTransaction(
         .set({
           lastBillAmount: finalAmount.toString(),
           outstandingBalance: sql`outstanding_balance + ${finalAmount}`,
-          paymentStatus: "pending",
+          paymentStatus: 'pending',
           updatedAt: new Date(),
         })
         .where(eq(customers.id, customerId));
@@ -343,10 +326,8 @@ export async function generateBillTransaction(
     });
   } catch (error) {
     // Transaction automatically rolls back
-    console.error("Bill generation transaction failed:", error);
-    throw new Error(
-      `Bill generation failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-    );
+    console.error('Bill generation transaction failed:', error);
+    throw new Error(`Bill generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -357,7 +338,7 @@ export async function updateWorkOrderTransaction(
   workOrderId: number,
   status: string,
   completionNotes?: string,
-  completedBy?: number,
+  completedBy?: number
 ) {
   try {
     return await db.transaction(async (tx) => {
@@ -369,7 +350,7 @@ export async function updateWorkOrderTransaction(
         .limit(1);
 
       if (!workOrder) {
-        throw new Error("Work order not found");
+        throw new Error('Work order not found');
       }
 
       // Update work order
@@ -378,8 +359,8 @@ export async function updateWorkOrderTransaction(
         updatedAt: new Date(),
       };
 
-      if (status === "completed") {
-        updateData.completionDate = new Date().toISOString().split("T")[0];
+      if (status === 'completed') {
+        updateData.completionDate = new Date().toISOString().split('T')[0];
         if (completionNotes) {
           updateData.completionNotes = completionNotes;
         }
@@ -391,10 +372,7 @@ export async function updateWorkOrderTransaction(
         .where(eq(workOrders.id, workOrderId));
 
       // If meter reading work order, update meter reading status
-      if (
-        (workOrder as any).workType === "meter_reading" &&
-        status === "completed"
-      ) {
+      if ((workOrder as any).workType === 'meter_reading' && status === 'completed') {
         // Additional logic for meter reading completion
         // This ensures data consistency
       }
@@ -406,10 +384,8 @@ export async function updateWorkOrderTransaction(
       };
     });
   } catch (error) {
-    console.error("Work order update transaction failed:", error);
-    throw new Error(
-      `Work order update failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-    );
+    console.error('Work order update transaction failed:', error);
+    throw new Error(`Work order update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -418,10 +394,9 @@ export async function updateWorkOrderTransaction(
  * This fixes the security vulnerability in password generation
  */
 export function generateSecurePassword(length: number = 16): string {
-  const charset =
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=";
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=';
   const randomBytes = crypto.randomBytes(length);
-  let password = "";
+  let password = '';
 
   for (let i = 0; i < length; i++) {
     password += charset[randomBytes[i] % charset.length];
@@ -466,3 +441,4 @@ export function generateSecurePassword(length: number = 16): string {
  *   connectionType: 'residential'
  * });
  */
+

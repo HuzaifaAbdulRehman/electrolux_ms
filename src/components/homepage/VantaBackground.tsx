@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 
 // Vanta.js types
 interface VantaEffect {
@@ -50,7 +50,7 @@ export default function VantaBackground() {
 
   useEffect(() => {
     // Only run on client-side
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
 
     // Check if scripts are already loaded
     if ((window as any).VANTA && (window as any).THREE) {
@@ -59,33 +59,31 @@ export default function VantaBackground() {
     }
 
     // Load THREE.js (required by Vanta)
-    const threeScript = document.createElement("script");
-    threeScript.src =
-      "https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js";
+    const threeScript = document.createElement('script');
+    threeScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js';
     threeScript.async = true;
 
     // Load Vanta.js NET effect
-    const vantaScript = document.createElement("script");
-    vantaScript.src =
-      "https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.net.min.js";
+    const vantaScript = document.createElement('script');
+    vantaScript.src = 'https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.net.min.js';
     vantaScript.async = true;
 
     threeScript.onload = () => {
-      console.log("[VantaBackground] THREE.js loaded successfully");
+      console.log('[VantaBackground] THREE.js loaded successfully');
       document.head.appendChild(vantaScript);
     };
 
     vantaScript.onload = () => {
-      console.log("[VantaBackground] Vanta.js loaded successfully");
+      console.log('[VantaBackground] Vanta.js loaded successfully');
       setScriptsLoaded(true);
     };
 
     threeScript.onerror = () => {
-      console.error("[VantaBackground] Failed to load THREE.js");
+      console.error('[VantaBackground] Failed to load THREE.js');
     };
 
     vantaScript.onerror = () => {
-      console.error("[VantaBackground] Failed to load Vanta.js");
+      console.error('[VantaBackground] Failed to load Vanta.js');
     };
 
     document.head.appendChild(threeScript);
@@ -106,7 +104,7 @@ export default function VantaBackground() {
       const windowWithVanta = window as any;
 
       if (windowWithVanta.VANTA && windowWithVanta.VANTA.NET) {
-        console.log("[VantaBackground] Initializing Vanta NET effect...");
+        console.log('[VantaBackground] Initializing Vanta NET effect...');
 
         vantaEffect.current = windowWithVanta.VANTA.NET({
           el: vantaRef.current,
@@ -126,26 +124,21 @@ export default function VantaBackground() {
           points: 12.0, // Number of network nodes (moderate for performance)
           maxDistance: 25.0, // Connection distance between nodes
           spacing: 18.0, // Space between nodes
-          showDots: true, // Show node points
+          showDots: true // Show node points
         });
 
-        console.log(
-          "[VantaBackground] Vanta NET effect initialized successfully",
-        );
+        console.log('[VantaBackground] Vanta NET effect initialized successfully');
         // Mark as ready after a small delay to ensure smooth transition
         setTimeout(() => setVantaReady(true), 100);
       }
     } catch (error) {
-      console.error(
-        "[VantaBackground] Error initializing Vanta effect:",
-        error,
-      );
+      console.error('[VantaBackground] Error initializing Vanta effect:', error);
     }
 
     // Cleanup on unmount
     return () => {
       if (vantaEffect.current) {
-        console.log("[VantaBackground] Destroying Vanta effect...");
+        console.log('[VantaBackground] Destroying Vanta effect...');
         vantaEffect.current.destroy();
         vantaEffect.current = null;
       }
@@ -168,8 +161,8 @@ export default function VantaBackground() {
         className="fixed inset-0 w-full h-full transition-opacity duration-300"
         style={{
           zIndex: 1,
-          pointerEvents: "none",
-          opacity: vantaReady ? 1 : 0,
+          pointerEvents: 'none',
+          opacity: vantaReady ? 1 : 0
         }}
         aria-hidden="true"
       />

@@ -1,16 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/drizzle/db";
-import { customers, users, meterReadings } from "@/lib/drizzle/schema";
-import { eq, desc } from "drizzle-orm";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/drizzle/db';
+import { customers, users, meterReadings } from '@/lib/drizzle/schema';
+import { eq, desc } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get customer data based on user ID
@@ -44,10 +44,7 @@ export async function GET(request: NextRequest) {
       .limit(1);
 
     if (!customerData) {
-      return NextResponse.json(
-        { error: "Customer profile not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: 'Customer profile not found' }, { status: 404 });
     }
 
     // Fetch the latest meter reading for this customer
@@ -69,11 +66,12 @@ export async function GET(request: NextRequest) {
         lastReadingDate: latestReading?.readingDate || null,
       },
     });
+
   } catch (error) {
-    console.error("Profile API error:", error);
+    console.error('Profile API error:', error);
     return NextResponse.json(
-      { error: "Failed to fetch profile data" },
-      { status: 500 },
+      { error: 'Failed to fetch profile data' },
+      { status: 500 }
     );
   }
 }
@@ -83,67 +81,64 @@ export async function PUT(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userId = parseInt(session.user.id, 10);
     const body = await request.json();
 
     // Validate required fields
-    if (!body.fullName || body.fullName.trim() === "") {
-      return NextResponse.json(
-        { error: "Full name is required" },
-        { status: 400 },
-      );
+    if (!body.fullName || body.fullName.trim() === '') {
+      return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
     }
 
     if (!body.email || !/^\S+@\S+\.\S+$/.test(body.email)) {
-      return NextResponse.json(
-        { error: "Valid email is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: 'Valid email is required' }, { status: 400 });
     }
 
     // Prepare update data for customers table
     const customerUpdateData: any = {
       fullName: body.fullName.trim(),
       email: body.email.trim(),
-      phone: body.phone || "",
-      address: body.address || "",
-      city: body.city || "",
-      state: body.state || "",
-      pincode: body.pincode || "",
+      phone: body.phone || '',
+      address: body.address || '',
+      city: body.city || '',
+      state: body.state || '',
+      pincode: body.pincode || '',
       dateOfBirth: body.dateOfBirth || null,
     };
 
     // 🔒 TRANSACTION FIX: Wrap both updates in a transaction for atomicity
     await db.transaction(async (tx) => {
-      // Update customers table
-      await tx
-        .update(customers)
-        .set(customerUpdateData)
-        .where(eq(customers.userId, userId));
+    // Update customers table
+    await tx
+      .update(customers)
+      .set(customerUpdateData)
+      .where(eq(customers.userId, userId));
 
-      // IMPORTANT: Also update the users table to keep names synchronized
-      // This ensures the session name and profile name stay in sync
-      await tx
-        .update(users)
-        .set({
-          name: body.fullName.trim(),
-          email: body.email.trim(),
-        })
-        .where(eq(users.id, userId));
-    }); // End transaction
+    // IMPORTANT: Also update the users table to keep names synchronized
+    // This ensures the session name and profile name stay in sync
+    await tx
+      .update(users)
+      .set({
+        name: body.fullName.trim(),
+        email: body.email.trim(),
+      })
+      .where(eq(users.id, userId));
+
+    });  // End transaction
 
     return NextResponse.json({
       success: true,
-      message: "Profile updated successfully",
+      message: 'Profile updated successfully',
     });
+
   } catch (error) {
-    console.error("Profile update error:", error);
+    console.error('Profile update error:', error);
     return NextResponse.json(
-      { error: "Failed to update profile" },
-      { status: 500 },
+      { error: 'Failed to update profile' },
+      { status: 500 }
     );
   }
 }
+

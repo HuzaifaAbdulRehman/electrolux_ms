@@ -14,17 +14,14 @@
  * @param defaultValue - Default value if conversion fails (default: 0)
  * @returns A valid number or the default value
  */
-export const safeNumber = (
-  value: unknown,
-  defaultValue: number = 0,
-): number => {
+export const safeNumber = (value: unknown, defaultValue: number = 0): number => {
   // Handle null, undefined, empty string
-  if (value === null || value === undefined || value === "") {
+  if (value === null || value === undefined || value === '') {
     return defaultValue;
   }
 
   // Try to convert to number
-  const num = typeof value === "string" ? parseFloat(value) : Number(value);
+  const num = typeof value === 'string' ? parseFloat(value) : Number(value);
 
   // Return default if NaN
   return isNaN(num) || !isFinite(num) ? defaultValue : num;
@@ -40,10 +37,10 @@ export const safeNumber = (
 export const formatNumber = (
   value: unknown,
   decimals: number = 2,
-  defaultValue: string = "0.00",
+  defaultValue: string = '0.00'
 ): string => {
   const num = safeNumber(value);
-  if (num === 0 && (value === null || value === undefined || value === "")) {
+  if (num === 0 && (value === null || value === undefined || value === '')) {
     return defaultValue;
   }
   return num.toFixed(decimals);
@@ -58,13 +55,13 @@ export const formatNumber = (
  */
 export const formatCurrency = (
   value: unknown,
-  symbol: string = "Rs.",
-  decimals: number = 0,
+  symbol: string = 'Rs.',
+  decimals: number = 0
 ): string => {
   const num = Math.round(safeNumber(value));
-  return `${symbol} ${num.toLocaleString("en-PK", {
+  return `${symbol} ${num.toLocaleString('en-PK', {
     minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
+    maximumFractionDigits: decimals
   })}`;
 };
 
@@ -74,20 +71,17 @@ export const formatCurrency = (
  * @param decimals - Decimal places (default: 1)
  * @returns Formatted string (e.g., "1.5K", "2.3M")
  */
-export const formatCompactNumber = (
-  value: unknown,
-  decimals: number = 1,
-): string => {
+export const formatCompactNumber = (value: unknown, decimals: number = 1): string => {
   const num = safeNumber(value);
 
   if (num >= 1_000_000_000) {
-    return (num / 1_000_000_000).toFixed(decimals) + "B";
+    return (num / 1_000_000_000).toFixed(decimals) + 'B';
   }
   if (num >= 1_000_000) {
-    return (num / 1_000_000).toFixed(decimals) + "M";
+    return (num / 1_000_000).toFixed(decimals) + 'M';
   }
   if (num >= 1_000) {
-    return (num / 1_000).toFixed(decimals) + "K";
+    return (num / 1_000).toFixed(decimals) + 'K';
   }
   return num.toFixed(decimals);
 };
@@ -100,11 +94,8 @@ export const formatCompactNumber = (
  * @param defaultValue - Default if value is invalid (default: 'N/A')
  * @returns String or default value
  */
-export const safeString = (
-  value: unknown,
-  defaultValue: string = "N/A",
-): string => {
-  if (value === null || value === undefined || value === "") {
+export const safeString = (value: unknown, defaultValue: string = 'N/A'): string => {
+  if (value === null || value === undefined || value === '') {
     return defaultValue;
   }
   return String(value);
@@ -120,9 +111,9 @@ export const safeString = (
 export const truncateString = (
   value: unknown,
   maxLength: number,
-  ellipsis: string = "...",
+  ellipsis: string = '...'
 ): string => {
-  const str = safeString(value, "");
+  const str = safeString(value, '');
   if (str.length <= maxLength) return str;
   return str.substring(0, maxLength - ellipsis.length) + ellipsis;
 };
@@ -138,19 +129,15 @@ export const truncateString = (
  */
 export const safeDate = (
   value: unknown,
-  defaultValue: string = "N/A",
-  format: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  },
+  defaultValue: string = 'N/A',
+  format: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' }
 ): string => {
   if (!value) return defaultValue;
 
   try {
     const date = new Date(value as string | number | Date);
     if (isNaN(date.getTime())) return defaultValue;
-    return date.toLocaleDateString("en-PK", format);
+    return date.toLocaleDateString('en-PK', format);
   } catch {
     return defaultValue;
   }
@@ -162,11 +149,7 @@ export const safeDate = (
  * @returns Formatted date (e.g., "Jan 15, 2024")
  */
 export const formatDate = (value: unknown): string => {
-  return safeDate(value, "N/A", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return safeDate(value, 'N/A', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
 /**
@@ -175,12 +158,12 @@ export const formatDate = (value: unknown): string => {
  * @returns Formatted datetime (e.g., "Jan 15, 2024, 3:30 PM")
  */
 export const formatDateTime = (value: unknown): string => {
-  return safeDate(value, "N/A", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+  return safeDate(value, 'N/A', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   });
 };
 
@@ -192,10 +175,7 @@ export const formatDateTime = (value: unknown): string => {
  * @param decimals - Decimal places (default: 1)
  * @returns Formatted percentage (e.g., "15.0%")
  */
-export const formatPercentage = (
-  value: unknown,
-  decimals: number = 1,
-): string => {
+export const formatPercentage = (value: unknown, decimals: number = 1): string => {
   const num = safeNumber(value) * 100;
   return `${num.toFixed(decimals)}%`;
 };
@@ -217,11 +197,8 @@ export const safeArray = <T = unknown>(value: unknown): T[] => {
  * @param decimals - Decimal places (default: 2)
  * @returns Average or 0 if array is empty
  */
-export const calculateAverage = (
-  values: unknown[],
-  decimals: number = 2,
-): number => {
-  const arr = safeArray(values).map((v) => safeNumber(v));
+export const calculateAverage = (values: unknown[], decimals: number = 2): number => {
+  const arr = safeArray(values).map(v => safeNumber(v));
   if (arr.length === 0) return 0;
 
   const sum = arr.reduce((acc, val) => acc + val, 0);
@@ -235,11 +212,8 @@ export const calculateAverage = (
  * @param decimals - Decimal places (default: 2)
  * @returns Sum or 0 if array is empty
  */
-export const calculateSum = (
-  values: unknown[],
-  decimals: number = 2,
-): number => {
-  const arr = safeArray(values).map((v) => safeNumber(v));
+export const calculateSum = (values: unknown[], decimals: number = 2): number => {
+  const arr = safeArray(values).map(v => safeNumber(v));
   const sum = arr.reduce((acc, val) => acc + val, 0);
   return parseFloat(sum.toFixed(decimals));
 };
@@ -253,16 +227,9 @@ export const calculateSum = (
  * @param defaultValue - Default if path not found
  * @returns Value at path or default
  */
-export const safeGet = (
-  obj: unknown,
-  path: string,
-  defaultValue: unknown = null,
-): unknown => {
+export const safeGet = (obj: unknown, path: string, defaultValue: unknown = null): unknown => {
   try {
-    return (
-      path.split(".").reduce((current: any, key) => current?.[key], obj) ??
-      defaultValue
-    );
+    return path.split('.').reduce((current: any, key) => current?.[key], obj) ?? defaultValue;
   } catch {
     return defaultValue;
   }
@@ -277,9 +244,8 @@ export const safeGet = (
  */
 export const isValid = (value: unknown): boolean => {
   if (value === null || value === undefined) return false;
-  if (typeof value === "number" && (isNaN(value) || !isFinite(value)))
-    return false;
-  if (typeof value === "string" && value.trim() === "") return false;
+  if (typeof value === 'number' && (isNaN(value) || !isFinite(value))) return false;
+  if (typeof value === 'string' && value.trim() === '') return false;
   return true;
 };
 
@@ -304,7 +270,7 @@ export const firstValid = (...values: unknown[]): unknown => {
  * @returns String with only digits
  */
 export const onlyDigits = (value: string): string => {
-  return value.replace(/\D+/g, "");
+  return value.replace(/\D+/g, '');
 };
 
 /**
@@ -313,10 +279,7 @@ export const onlyDigits = (value: string): string => {
  * @param maxLength - Maximum digits allowed (default: 11)
  * @returns Formatted phone number
  */
-export const formatPKPhone = (
-  value: string,
-  maxLength: number = 11,
-): string => {
+export const formatPKPhone = (value: string, maxLength: number = 11): string => {
   const digits = onlyDigits(value).slice(0, maxLength);
   if (digits.length <= 4) return digits;
   return `${digits.slice(0, 4)}-${digits.slice(4)}`;
@@ -382,17 +345,17 @@ export const formatMeterReading = (value: unknown): string => {
  * @returns Tailwind color classes
  */
 export const getBillStatusColor = (status: string): string => {
-  const s = safeString(status, "").toLowerCase();
+  const s = safeString(status, '').toLowerCase();
   switch (s) {
-    case "paid":
-      return "bg-green-100 text-green-800 border-green-300";
-    case "pending":
-    case "issued":
-      return "bg-yellow-100 text-yellow-800 border-yellow-300";
-    case "overdue":
-      return "bg-red-100 text-red-800 border-red-300";
+    case 'paid':
+      return 'bg-green-100 text-green-800 border-green-300';
+    case 'pending':
+    case 'issued':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+    case 'overdue':
+      return 'bg-red-100 text-red-800 border-red-300';
     default:
-      return "bg-gray-100 text-gray-800 border-gray-300";
+      return 'bg-gray-100 text-gray-800 border-gray-300';
   }
 };
 
@@ -428,55 +391,15 @@ export interface DBTariffSlab {
  */
 export const calculateTariffSlabs = (
   unitsConsumed: number,
-  tariffSlabs?: DBTariffSlab[],
+  tariffSlabs?: DBTariffSlab[]
 ): TariffSlab[] => {
   // Default Pakistani residential tariff structure if not provided
   const defaultSlabs: DBTariffSlab[] = [
-    {
-      id: 1,
-      tariffId: 1,
-      slabOrder: 1,
-      startUnits: 0,
-      endUnits: 100,
-      ratePerUnit: 5.0,
-      createdAt: new Date(),
-    },
-    {
-      id: 2,
-      tariffId: 1,
-      slabOrder: 2,
-      startUnits: 100,
-      endUnits: 200,
-      ratePerUnit: 8.0,
-      createdAt: new Date(),
-    },
-    {
-      id: 3,
-      tariffId: 1,
-      slabOrder: 3,
-      startUnits: 200,
-      endUnits: 300,
-      ratePerUnit: 12.0,
-      createdAt: new Date(),
-    },
-    {
-      id: 4,
-      tariffId: 1,
-      slabOrder: 4,
-      startUnits: 300,
-      endUnits: 500,
-      ratePerUnit: 18.0,
-      createdAt: new Date(),
-    },
-    {
-      id: 5,
-      tariffId: 1,
-      slabOrder: 5,
-      startUnits: 500,
-      endUnits: null,
-      ratePerUnit: 22.0,
-      createdAt: new Date(),
-    },
+    { id: 1, tariffId: 1, slabOrder: 1, startUnits: 0, endUnits: 100, ratePerUnit: 5.0, createdAt: new Date() },
+    { id: 2, tariffId: 1, slabOrder: 2, startUnits: 100, endUnits: 200, ratePerUnit: 8.0, createdAt: new Date() },
+    { id: 3, tariffId: 1, slabOrder: 3, startUnits: 200, endUnits: 300, ratePerUnit: 12.0, createdAt: new Date() },
+    { id: 4, tariffId: 1, slabOrder: 4, startUnits: 300, endUnits: 500, ratePerUnit: 18.0, createdAt: new Date() },
+    { id: 5, tariffId: 1, slabOrder: 5, startUnits: 500, endUnits: null, ratePerUnit: 22.0, createdAt: new Date() },
   ];
 
   const slabs = tariffSlabs || defaultSlabs;
@@ -491,21 +414,18 @@ export const calculateTariffSlabs = (
     if (remainingUnits <= 0) break;
 
     // Calculate units that fall in this slab
-    const slabCapacity =
-      slab.endUnits === null
-        ? remainingUnits // For unlimited slabs, consume all remaining units
-        : Math.max(0, slab.endUnits - slab.startUnits);
+    const slabCapacity = slab.endUnits === null
+      ? remainingUnits // For unlimited slabs, consume all remaining units
+      : Math.max(0, slab.endUnits - slab.startUnits);
 
-    const slabUnits =
-      slab.endUnits === null
-        ? remainingUnits
-        : Math.min(remainingUnits, slabCapacity);
+    const slabUnits = slab.endUnits === null
+      ? remainingUnits
+      : Math.min(remainingUnits, slabCapacity);
 
     if (slabUnits > 0) {
-      const rate =
-        typeof slab.ratePerUnit === "string"
-          ? parseFloat(slab.ratePerUnit)
-          : slab.ratePerUnit;
+      const rate = typeof slab.ratePerUnit === 'string'
+        ? parseFloat(slab.ratePerUnit)
+        : slab.ratePerUnit;
 
       const amount = slabUnits * rate;
 
@@ -513,10 +433,9 @@ export const calculateTariffSlabs = (
         units: slabUnits,
         rate: rate,
         amount: amount,
-        range:
-          slab.endUnits === null
-            ? `${slab.startUnits}+ kWh`
-            : `${slab.startUnits}-${slab.endUnits} kWh`,
+        range: slab.endUnits === null
+          ? `${slab.startUnits}+ kWh`
+          : `${slab.startUnits}-${slab.endUnits} kWh`
       });
 
       remainingUnits -= slabUnits;
@@ -570,5 +489,6 @@ export default {
   formatUnits,
   formatMeterReading,
   getBillStatusColor,
-  calculateTariffSlabs,
+  calculateTariffSlabs
 };
+

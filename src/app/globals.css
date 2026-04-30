@@ -2,13 +2,119 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Font Variables */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-poppins: 'Poppins', 'Inter', sans-serif;
+  --font-jetbrains-mono: 'JetBrains Mono', monospace;
+}
+
+/* Prevent theme flash by setting default background */
+html {
+  background-color: #0f172a; /* Default dark background */
+  transition: background-color 0.2s ease;
+}
+
+html.light {
+  background-color: #ffffff;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: inherit;
+  transition: background-color 0.2s ease;
 }
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #facc15, #fb923c);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #fbbf24, #f97316);
+}
+
+/* Custom checkbox styles */
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+input[type="checkbox"]:checked {
+  background: linear-gradient(135deg, #facc15, #fb923c);
+  border-color: #facc15;
+}
+
+input[type="checkbox"]:checked::before {
+  content: "✓";
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+input[type="checkbox"]:focus {
+  outline: 2px solid #facc15;
+  outline-offset: 2px;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Base styles */
+body {
+  overflow-x: hidden;
+  font-family: var(--font-inter);
+}
+
+/* Font utilities */
+h1, h2 {
+  font-family: var(--font-poppins);
+}
+
+code, pre {
+  font-family: var(--font-jetbrains-mono);
+}
+
+/* Light mode background */
+html:not(.dark) body {
+  background: linear-gradient(to bottom right, #f9fafb, #f3f4f6, #e5e7eb);
+}
+
+/* Dark mode background */
+html.dark body {
+  background: linear-gradient(to bottom right, #0f172a, #581c87, #0f172a);
+}
+
+/* Animation keyframes */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+

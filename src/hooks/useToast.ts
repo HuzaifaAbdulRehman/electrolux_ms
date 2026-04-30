@@ -1,16 +1,10 @@
-"use client";
+'use client';
 
-import toast from "react-hot-toast";
+import toast from 'react-hot-toast';
 
 export interface ToastOptions {
   duration?: number;
-  position?:
-    | "top-left"
-    | "top-center"
-    | "top-right"
-    | "bottom-left"
-    | "bottom-center"
-    | "bottom-right";
+  position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
   icon?: string;
   id?: string;
 }
@@ -19,7 +13,7 @@ export const useToast = () => {
   const showSuccess = (message: string, options?: ToastOptions) => {
     return toast.success(message, {
       duration: options?.duration || 4000,
-      position: options?.position || "top-right",
+      position: options?.position || 'top-right',
       icon: options?.icon,
       id: options?.id,
     });
@@ -28,7 +22,7 @@ export const useToast = () => {
   const showError = (message: string, options?: ToastOptions) => {
     return toast.error(message, {
       duration: options?.duration || 5000,
-      position: options?.position || "top-right",
+      position: options?.position || 'top-right',
       icon: options?.icon,
       id: options?.id,
     });
@@ -37,7 +31,7 @@ export const useToast = () => {
   const showLoading = (message: string, options?: ToastOptions) => {
     return toast.loading(message, {
       duration: options?.duration || Infinity,
-      position: options?.position || "top-right",
+      position: options?.position || 'top-right',
       icon: options?.icon,
       id: options?.id,
     });
@@ -46,13 +40,13 @@ export const useToast = () => {
   const showInfo = (message: string, options?: ToastOptions) => {
     return toast(message, {
       duration: options?.duration || 4000,
-      position: options?.position || "top-right",
+      position: options?.position || 'top-right',
       icon: options?.icon,
       id: options?.id,
       style: {
-        background: "#1e40af",
-        color: "#dbeafe",
-        border: "1px solid #3b82f6",
+        background: '#1e40af',
+        color: '#dbeafe',
+        border: '1px solid #3b82f6',
       },
     });
   };
@@ -60,13 +54,13 @@ export const useToast = () => {
   const showWarning = (message: string, options?: ToastOptions) => {
     return toast(message, {
       duration: options?.duration || 4000,
-      position: options?.position || "top-right",
+      position: options?.position || 'top-right',
       icon: options?.icon,
       id: options?.id,
       style: {
-        background: "#92400e",
-        color: "#fef3c7",
-        border: "1px solid #f59e0b",
+        background: '#92400e',
+        color: '#fef3c7',
+        border: '1px solid #f59e0b',
       },
     });
   };
@@ -83,7 +77,7 @@ export const useToast = () => {
     toast.dismiss();
   };
 
-  const promise = <T>(
+  const promise = <T,>(
     promise: Promise<T>,
     {
       loading,
@@ -93,7 +87,7 @@ export const useToast = () => {
       loading: string;
       success: string | ((value: T) => string);
       error: string | ((error: any) => string);
-    },
+    }
   ) => {
     return toast.promise(promise, {
       loading,
@@ -113,3 +107,4 @@ export const useToast = () => {
     promise,
   };
 };
+
